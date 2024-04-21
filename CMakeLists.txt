@@ -37,7 +37,7 @@ find_package(nanobind CONFIG REQUIRED)
 # We are now ready to compile the actual extension module
 nanobind_add_module(
   # Name of the extension
-  pyethercat_ext
+  soem_ext
 
   # Target the stable ABI for Python 3.12+, which reduces
   # the number of binary wheels that must be built. This
@@ -53,19 +53,19 @@ nanobind_add_module(
   NB_STATIC
 
   # Source code goes here
-  src/pyethercat_ext.cpp
+  src/pyethercat/soem_ext.cpp
 )
 
 nanobind_add_stub(
-  pyethercat_ext_stub
-  MODULE pyethercat_ext
-  OUTPUT pyethercat_ext.pyi
-  PYTHON_PATH $<TARGET_FILE_DIR:pyethercat_ext>
-  DEPENDS pyethercat_ext
+  soem_ext_stub
+  MODULE soem_ext
+  OUTPUT soem_ext.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:soem_ext>
+  DEPENDS soem_ext
   MARKER_FILE py.typed
 )
 
 # Install directive for scikit-build-core
 
-install(TARGETS pyethercat_ext LIBRARY DESTINATION pyethercat)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pyethercat_ext.pyi" "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION pyethercat)
+install(TARGETS soem_ext LIBRARY DESTINATION "pyethercat/soem")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/soem_ext.pyi" "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION "pyethercat/soem")
