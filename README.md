@@ -6,5 +6,5 @@ An EtherCAT MainDevice in Python
 * everything
 
 ## The Plan
-* Use SOEM
+* Use SOEM (via nanobind)
 * Add ENI functionality

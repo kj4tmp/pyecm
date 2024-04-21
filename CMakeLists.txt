@@ -33,6 +33,9 @@ find_package(Python 3.8
 # Import nanobind through CMake's find_package mechanism
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/nanobind) # nanobind is installed as a submodule
 find_package(nanobind CONFIG REQUIRED)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/SOEM) # soem is installed as a submodule
+target
+#find_package(soem CONFIG REQUIRED)
 
 # We are now ready to compile the actual extension module
 nanobind_add_module(
