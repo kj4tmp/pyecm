@@ -1,5 +1,5 @@
 import pyethercat
 
-print(pyethercat.add(1,2))
+print(pyethercat.soem.add(1,2))
 
 

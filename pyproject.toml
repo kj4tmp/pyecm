@@ -30,3 +30,10 @@ wheel.py-api = "cp312"
 [project.urls]
 Homepage = "https://github.com/kj4tmp/pyethercat"
 Issues = "https://github.com/kj4tmp/pyethercat/issues"
+
+
+# pyproject.toml
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
