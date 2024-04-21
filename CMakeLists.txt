@@ -62,7 +62,10 @@ nanobind_add_stub(
   OUTPUT pyethercat_ext.pyi
   PYTHON_PATH $<TARGET_FILE_DIR:pyethercat_ext>
   DEPENDS pyethercat_ext
+  MARKER_FILE py.typed
 )
 
 # Install directive for scikit-build-core
+
 install(TARGETS pyethercat_ext LIBRARY DESTINATION pyethercat)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pyethercat_ext.pyi" "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION pyethercat)
