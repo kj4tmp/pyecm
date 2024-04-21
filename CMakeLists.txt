@@ -31,6 +31,7 @@ find_package(Python 3.8
   OPTIONAL_COMPONENTS Development.SABIModule)
 
 # Import nanobind through CMake's find_package mechanism
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/nanobind) # nanobind is installed as a submodule
 find_package(nanobind CONFIG REQUIRED)
 
 # We are now ready to compile the actual extension module
@@ -53,6 +54,14 @@ nanobind_add_module(
 
   # Source code goes here
   src/pyethercat_ext.cpp
+)
+
+nanobind_add_stub(
+  pyethercat_ext_stub
+  MODULE pyethercat_ext
+  OUTPUT pyethercat_ext.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:pyethercat_ext>
+  DEPENDS pyethercat_ext
 )
 
 # Install directive for scikit-build-core
