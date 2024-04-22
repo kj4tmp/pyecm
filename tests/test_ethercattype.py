@@ -1,6 +1,6 @@
 import logging
 
-from pyethercat.soem import ec_err_type, ec_state
+from pyethercat.soem import ec_err_type, ec_errort, ec_state, ec_timet
 
 _logger = logging.getLogger(__name__)
 
@@ -12,3 +12,7 @@ def test_ec_err_type():
 def test_ec_state():
     assert ec_state.EC_STATE_NONE.value == 0
     assert ec_state.EC_STATE_INIT.value == 1
+
+def test_ec_errort():
+    errt = ec_errort()
+    errt.Time = ec_timet()

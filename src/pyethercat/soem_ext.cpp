@@ -4,6 +4,22 @@ namespace nb = nanobind;
 
 using namespace nb::literals;
 
+nb::list wrap_ec_find_adapters() {
+        ec_adaptert *adapters = ec_find_adapters();
+
+        nb::list adapter_list;
+        while (adapters != nullptr) {
+            nb::dict adapter_dict;
+            adapter_dict["name"] = std::string(adapters->name);
+            adapter_dict["desc"] = std::string(adapters->desc);
+            adapter_list.append(adapters->name);
+            adapters = adapters->next;
+        }
+
+        return adapter_list;
+    }
+
+
 NB_MODULE(soem_ext, m) {
     m.def("add", [](int a, int b) { return a + b; }, "a"_a, "b"_a, "This function adds two numbers and increments if only one is provided.");
 
@@ -13,6 +29,7 @@ NB_MODULE(soem_ext, m) {
 
     // from osal.h
     nb::class_<ec_timet> (m, "ec_timet")
+        .def(nb::init<>())
         .def_rw("sec", &ec_timet::sec)
         .def_rw("usec", &ec_timet::usec);
 
@@ -41,20 +58,31 @@ NB_MODULE(soem_ext, m) {
         .value("EC_STATE_ERROR", ec_state::EC_STATE_ERROR);
 
 
-    // TODO: figure out how to do this nexted union crap
-    // nb::class_<ec_errort>(m, "ec_errort")
-    //     .def_rw("Time", &ec_errort::Time)
-    //     .def_rw("Signal", &ec_errort::Signal)
-    //     .def_rw("Slave", &ec_errort::Slave)
-    //     .def_rw("Index", &ec_errort::Index)
-    //     .def_rw("SubIdx", &ec_errort::SubIdx)
-    //     .def_rw("Etype", &ec_errort::Etype)
-    //     .def_rw("AbortCode", &ec_errort::AbortCode);
-        // .def_rw("ErrorCode", [](const ec_errort& error) -> uint16& { return error.SpecificError.ErrorCode; })
-        // .def_rw("ErrorReg", [](const ec_errort& error) -> uint8& { return error.SpecificError.ErrorReg; })
-        // .def_rw("b1", [](const ec_errort& error) -> uint8& { return error.SpecificError.b1; })
-        // .def_rw("w1", [](const ec_errort& error) -> uint16& { return error.SpecificError.w1; })
-        // .def_rw("w2", [](const ec_errort& error) -> uint16& { return error.SpecificError.w2; });
+    nb::class_<ec_errort>(m, "ec_errort")
+        .def(nb::init<>())
+        .def_rw("Time", &ec_errort::Time)
+        .def_rw("Signal", &ec_errort::Signal)
+        .def_rw("Slave", &ec_errort::Slave)
+        .def_rw("Index", &ec_errort::Index)
+        .def_rw("SubIdx", &ec_errort::SubIdx)
+        .def_rw("Etype", &ec_errort::Etype)
+        .def_rw("AbortCode", &ec_errort::AbortCode)
+        .def_rw("ErrorCode", &ec_errort::ErrorCode)
+        .def_rw("ErrorReg", &ec_errort::ErrorReg)
+        .def_rw("b1", &ec_errort::b1)
+        .def_rw("w1", &ec_errort::w1)
+        .def_rw("w2", &ec_errort::w2);
 
+
+    // ethercatmain.h
+    // nb::class_<ec_adapter>(m, "ec_adapter")
+    //      .def_rw("name", &ec_adapter::name)
+    //      .def_rw("desc", &ec_adapter::desc)
+    //      .def_rw("next", &ec_adapter::next);
+
+    // Define the wrapper function for ec_find_adapters
+    
+
+    m.def("ec_find_adapters", &wrap_ec_find_adapters, "Find adapters and return as a list of dictionaries");
 
 }

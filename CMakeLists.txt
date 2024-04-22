@@ -33,6 +33,12 @@ find_package(Python 3.8
 # Import nanobind through CMake's find_package mechanism
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/nanobind) # nanobind is installed as a submodule
 find_package(nanobind CONFIG REQUIRED)
+
+# who knows that pos ind code is but this fixes an error:
+# relocation R_X86_64_PC32 against symbol `secMAC' can not be used when making a shared object; recompile with -fPIC
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/SOEM) # soem is installed as a submodule
 
 # We are now ready to compile the actual extension module
