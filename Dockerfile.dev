@@ -1,1 +1,3 @@
 FROM python
+COPY ./requirements.dev requirements.dev
+RUN pip install -r requirements.dev
