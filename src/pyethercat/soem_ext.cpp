@@ -25,5 +25,15 @@ NB_MODULE(soem_ext, m) {
         .value("EC_ERR_TYPE_FOE_FILE_NOTFOUND", ec_err_type::EC_ERR_TYPE_FOE_FILE_NOTFOUND)
         .value("EC_ERR_TYPE_EOE_INVALID_RX_DATA", ec_err_type::EC_ERR_TYPE_EOE_INVALID_RX_DATA);
     
+    nb::enum_<ec_state> (m, "ec_state")
+        .value("EC_STATE_NONE", ec_state::EC_STATE_NONE)
+        .value("EC_STATE_INIT", ec_state::EC_STATE_INIT)
+        .value("EC_STATE_PRE_OP", ec_state::EC_STATE_PRE_OP)
+        .value("EC_STATE_BOOT", ec_state::EC_STATE_BOOT)
+        .value("EC_STATE_SAFE_OP", ec_state::EC_STATE_SAFE_OP)
+        .value("EC_STATE_OPERATIONAL", ec_state::EC_STATE_OPERATIONAL)
+        .value("EC_STATE_ACK", ec_state::EC_STATE_ACK)
+        .value("EC_STATE_ERROR", ec_state::EC_STATE_ERROR);
 
+    // convert the above ctype def into nanobind
 }
