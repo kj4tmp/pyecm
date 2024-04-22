@@ -34,8 +34,6 @@ find_package(Python 3.8
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/nanobind) # nanobind is installed as a submodule
 find_package(nanobind CONFIG REQUIRED)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/SOEM) # soem is installed as a submodule
-target
-#find_package(soem CONFIG REQUIRED)
 
 # We are now ready to compile the actual extension module
 nanobind_add_module(
@@ -58,6 +56,7 @@ nanobind_add_module(
   # Source code goes here
   src/pyethercat/soem_ext.cpp
 )
+target_link_libraries(soem_ext PUBLIC soem)
 
 nanobind_add_stub(
   soem_ext_stub
@@ -67,7 +66,6 @@ nanobind_add_stub(
   DEPENDS soem_ext
   MARKER_FILE py.typed
 )
-
 # Install directive for scikit-build-core
 
 install(TARGETS soem_ext LIBRARY DESTINATION "pyethercat/soem")
