@@ -75,14 +75,19 @@ NB_MODULE(soem_ext, m) {
 
 
     // ethercatmain.h
-    // nb::class_<ec_adapter>(m, "ec_adapter")
-    //      .def_rw("name", &ec_adapter::name)
-    //      .def_rw("desc", &ec_adapter::desc)
-    //      .def_rw("next", &ec_adapter::next);
+    nb::class_<ec_adaptert>(m, "ec_adapter")
+        .def_rw("name", &ec_adaptert::name)
+        .def_rw("desc", &ec_adaptert::desc);
+        //.def_rw("next", &ec_adaptert::next);
 
-    // Define the wrapper function for ec_find_adapters
+    m.def("ec_find_adapters", []() {
+        nb::list result;
+        ec_adaptert *head = ec_find_adapters();
+        while (head) {
+            result.append(*head);
+            head = head->next;
+        }
+        return result;
+    });
     
-
-    m.def("ec_find_adapters", &wrap_ec_find_adapters, "Find adapters and return as a list of dictionaries");
-
 }
