@@ -4,21 +4,6 @@ namespace nb = nanobind;
 
 using namespace nb::literals;
 
-nb::list wrap_ec_find_adapters() {
-        ec_adaptert *adapters = ec_find_adapters();
-
-        nb::list adapter_list;
-        while (adapters != nullptr) {
-            nb::dict adapter_dict;
-            adapter_dict["name"] = std::string(adapters->name);
-            adapter_dict["desc"] = std::string(adapters->desc);
-            adapter_list.append(adapters->name);
-            adapters = adapters->next;
-        }
-
-        return adapter_list;
-    }
-
 
 NB_MODULE(soem_ext, m) {
     m.def("add", [](int a, int b) { return a + b; }, "a"_a, "b"_a, "This function adds two numbers and increments if only one is provided.");
@@ -75,19 +60,18 @@ NB_MODULE(soem_ext, m) {
 
 
     // ethercatmain.h
-    nb::class_<ec_adaptert>(m, "ec_adapter")
-        .def_rw("name", &ec_adaptert::name)
-        .def_rw("desc", &ec_adaptert::desc);
-        //.def_rw("next", &ec_adaptert::next);
+    nb::class_<ec_adaptert>(m, "ec_adaptert")
+        .def_prop_ro("name", [](ec_adaptert *adp) -> nb::bytes { return nb::bytes(adp->name); })
+        .def_prop_ro("desc", [](ec_adaptert *adp) -> nb::bytes { return nb::bytes(adp->desc); });
 
-    m.def("ec_find_adapters", []() {
-        nb::list result;
-        ec_adaptert *head = ec_find_adapters();
-        while (head) {
-            result.append(*head);
-            head = head->next;
+    m.def("ec_find_adapters", []() -> nb::typed<nb::list, ec_adaptert> {
+        ec_adaptert *adapters = ec_find_adapters();
+        nb::typed<nb::list, ec_adaptert> adapter_list;
+        while (adapters != nullptr) {
+            adapter_list.append(adapters);
+            adapters = adapters->next;
         }
-        return result;
+        return adapter_list;
     });
     
 }

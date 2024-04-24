@@ -4,6 +4,13 @@ import enum
 def add(a: int, b: int) -> int:
     """This function adds two numbers and increments if only one is provided."""
 
+class ec_adaptert:
+    @property
+    def name(self) -> bytes: ...
+
+    @property
+    def desc(self) -> bytes: ...
+
 class ec_err_type(enum.Enum):
     EC_ERR_TYPE_SDO_ERROR: ec_err_type
 
@@ -102,8 +109,7 @@ class ec_errort:
     @w2.setter
     def w2(self, arg: int, /) -> None: ...
 
-def ec_find_adapters() -> list:
-    """Find adapters and return as a list of dictionaries"""
+def ec_find_adapters() -> list[ec_adaptert]: ...
 
 class ec_state(enum.Enum):
     EC_STATE_NONE: ec_state
