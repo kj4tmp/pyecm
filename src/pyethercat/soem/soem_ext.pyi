@@ -1,8 +1,7 @@
 import enum
 
 
-def add(a: int, b: int) -> int:
-    """This function adds two numbers and increments if only one is provided."""
+def add(a: int, b: int) -> int: ...
 
 class ec_adaptert:
     @property
@@ -142,3 +141,8 @@ class ec_timet:
 
     @usec.setter
     def usec(self, arg: int, /) -> None: ...
+
+class ecx_contextt:
+    pass
+
+def ecx_init(arg0: ecx_contextt, arg1: str, /) -> int: ...

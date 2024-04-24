@@ -6,7 +6,7 @@ using namespace nb::literals;
 
 
 NB_MODULE(soem_ext, m) {
-    m.def("add", [](int a, int b) { return a + b; }, "a"_a, "b"_a, "This function adds two numbers and increments if only one is provided.");
+    m.def("add", [](int a, int b) { return a + b; }, "a"_a, "b"_a);
 
 
     // ethercat.h
@@ -59,6 +59,11 @@ NB_MODULE(soem_ext, m) {
         .def_rw("w2", &ec_errort::w2);
 
 
+    //nicdrv.h
+    //TODO: fill in
+    nb::class_<ecx_portt>(m, "ecx_portt");
+        
+
     // ethercatmain.h
     nb::class_<ec_adaptert>(m, "ec_adaptert")
         .def_prop_ro("name", [](ec_adaptert *adp) -> nb::bytes { return nb::bytes(adp->name); })
@@ -71,7 +76,40 @@ NB_MODULE(soem_ext, m) {
             adapter_list.append(adapters);
             adapters = adapters->next;
         }
+        ec_free_adapters(adapters);
         return adapter_list;
     });
+
+    //TODO: fill in
+    nb::class_<ec_slavet>(m, "ec_slavet");
+
+    //TODO: fill in
+    nb::class_<ecx_contextt>(m, "ecx_contextt")
+        .def_ro("port", ecx_contextt::port)
+        .def_ro("slavelist", &ecx_contextt::slavelist)
+        .def_ro("slavecount", &ecx_contextt::slavecount)
+        .def_ro("maxslave", &ecx_contextt::maxslave)
+        .def_ro("grouplist", &ecx_contextt::grouplist)
+        .def_ro("maxgroup", &ecx_contextt::maxgroup)
+        .def_ro("esibuf", &ecx_contextt::esibuf)
+        .def_ro("esimap", &ecx_contextt::esimap)
+        .def_ro("esislave", &ecx_contextt::esislave)
+        .def_ro("elist", &ecx_contextt::elist)
+        .def_ro("idxstack", &ecx_contextt::idxstack)
+        .def_ro("ecaterror", &ecx_contextt::ecaterror)
+        .def_ro("DCtime", &ecx_contextt::DCtime)
+        .def_ro("SMcommtype", &ecx_contextt::SMcommtype)
+        .def_ro("PDOassign", &ecx_contextt::PDOassign)
+        .def_ro("PDOdesc", &ecx_contextt::PDOdesc)
+        .def_ro("eepSM", &ecx_contextt::eepSM)
+        .def_ro("eepFMMU", &ecx_contextt::eepFMMU)
+        .def_ro("FOEhook", &ecx_contextt::FOEhook)
+        .def_ro("EOEhook", &ecx_contextt::EOEhook)
+        .def_ro("manualstatechange", &ecx_contextt::manualstatechange)
+        .def_ro("userdata", &ecx_contextt::userdata);
+        
+
+    m.def("ecx_init", &ecx_init);
     
+
 }
