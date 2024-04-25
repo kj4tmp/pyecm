@@ -14,7 +14,6 @@ NB_MODULE(soem_ext, m) {
 
     // from osal.h
     nb::class_<ec_timet> (m, "ec_timet")
-        .def(nb::init<>())
         .def_rw("sec", &ec_timet::sec)
         .def_rw("usec", &ec_timet::usec);
 
@@ -44,7 +43,6 @@ NB_MODULE(soem_ext, m) {
 
 
     nb::class_<ec_errort>(m, "ec_errort")
-        .def(nb::init<>())
         .def_rw("Time", &ec_errort::Time)
         .def_rw("Signal", &ec_errort::Signal)
         .def_rw("Slave", &ec_errort::Slave)
@@ -108,7 +106,6 @@ NB_MODULE(soem_ext, m) {
 
     //TODO: fill in
     nb::class_<ecx_contextt>(m, "ecx_contextt")
-        .def(nb::init<>())
         .def_rw("port", &ecx_contextt::port)
         .def_rw("slavelist", &ecx_contextt::slavelist)
         .def_rw("slavecount", &ecx_contextt::slavecount)
