@@ -62,7 +62,6 @@ NB_MODULE(soem_ext, m) {
     //nicdrv.h
     //TODO: fill in
     nb::class_<ecx_portt>(m, "ecx_portt");
-        
 
     // ethercatmain.h
     nb::class_<ec_adaptert>(m, "ec_adaptert")
@@ -84,29 +83,54 @@ NB_MODULE(soem_ext, m) {
     nb::class_<ec_slavet>(m, "ec_slavet");
 
     //TODO: fill in
+    nb::class_<ec_groupt>(m, "ec_groupt");
+
+    //TODO: fill in
+    nb::class_<ec_eringt>(m, "ec_eringt");
+
+    //TODO: fill in
+    nb::class_<ec_idxstackT>(m, "ec_eringt");
+
+    //TODO: fill in
+    nb::class_<ec_SMcommtypet>(m, "ec_SMcommtypet");
+
+    //TODO: fill in
+    nb::class_<ec_PDOassignt>(m, "ec_PDOassignt");
+
+    //TODO: fill in
+    nb::class_<ec_PDOdesct>(m, "ec_PDOdesct");
+
+    //TODO: fill in
+    nb::class_<ec_eepromSMt>(m, "ec_eepromSMt");
+
+    //TODO: fill in
+    nb::class_<ec_eepromFMMUt>(m, "ec_eepromFMMUt");
+
+    //TODO: fill in
     nb::class_<ecx_contextt>(m, "ecx_contextt")
-        .def_ro("port", ecx_contextt::port)
-        .def_ro("slavelist", &ecx_contextt::slavelist)
-        .def_ro("slavecount", &ecx_contextt::slavecount)
-        .def_ro("maxslave", &ecx_contextt::maxslave)
-        .def_ro("grouplist", &ecx_contextt::grouplist)
-        .def_ro("maxgroup", &ecx_contextt::maxgroup)
-        .def_ro("esibuf", &ecx_contextt::esibuf)
-        .def_ro("esimap", &ecx_contextt::esimap)
-        .def_ro("esislave", &ecx_contextt::esislave)
-        .def_ro("elist", &ecx_contextt::elist)
-        .def_ro("idxstack", &ecx_contextt::idxstack)
-        .def_ro("ecaterror", &ecx_contextt::ecaterror)
-        .def_ro("DCtime", &ecx_contextt::DCtime)
-        .def_ro("SMcommtype", &ecx_contextt::SMcommtype)
-        .def_ro("PDOassign", &ecx_contextt::PDOassign)
-        .def_ro("PDOdesc", &ecx_contextt::PDOdesc)
-        .def_ro("eepSM", &ecx_contextt::eepSM)
-        .def_ro("eepFMMU", &ecx_contextt::eepFMMU)
-        .def_ro("FOEhook", &ecx_contextt::FOEhook)
-        .def_ro("EOEhook", &ecx_contextt::EOEhook)
-        .def_ro("manualstatechange", &ecx_contextt::manualstatechange)
-        .def_ro("userdata", &ecx_contextt::userdata);
+        .def(nb::init<>())
+        .def_rw("port", &ecx_contextt::port)
+        .def_rw("slavelist", &ecx_contextt::slavelist)
+        .def_rw("slavecount", &ecx_contextt::slavecount)
+        .def_rw("maxslave", &ecx_contextt::maxslave)
+        .def_rw("grouplist", &ecx_contextt::grouplist)
+        .def_rw("maxgroup", &ecx_contextt::maxgroup)
+        .def_rw("esibuf", &ecx_contextt::esibuf)
+        .def_rw("esimap", &ecx_contextt::esimap)
+        .def_rw("esislave", &ecx_contextt::esislave)
+        .def_rw("elist", &ecx_contextt::elist)
+        .def_rw("idxstack", &ecx_contextt::idxstack)
+        .def_rw("ecaterror", &ecx_contextt::ecaterror)
+        .def_rw("DCtime", &ecx_contextt::DCtime)
+        .def_rw("SMcommtype", &ecx_contextt::SMcommtype)
+        .def_rw("PDOassign", &ecx_contextt::PDOassign)
+        .def_rw("PDOdesc", &ecx_contextt::PDOdesc)
+        .def_rw("eepSM", &ecx_contextt::eepSM)
+        .def_rw("eepFMMU", &ecx_contextt::eepFMMU)
+        // .def_rw("FOEhook", &ecx_contextt::FOEhook);
+        // .def_rw("EOEhook", &ecx_contextt::EOEhook)
+        .def_rw("manualstatechange", &ecx_contextt::manualstatechange)
+        .def_rw("userdata", &ecx_contextt::userdata);
         
 
     m.def("ecx_init", &ecx_init);
