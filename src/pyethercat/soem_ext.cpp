@@ -177,8 +177,6 @@ NB_MODULE(soem_ext, m) {
         //.def(nb::init<>())
         .def("__init__", [](ecx_contextt *context)
         {
-            char IOmap[4096];
-
             /** Main slave data array.
              *  Each slave found on the network gets its own record.
              *  ec_slave[0] is reserved for the master. Structure gets filled
@@ -290,6 +288,6 @@ NB_MODULE(soem_ext, m) {
     m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned);
     m.def("ecx_recover_slave", &ecx_recover_slave);
     m.def("ecx_reconfig_slave", &ecx_reconfig_slave);
-    
+
 
 }
