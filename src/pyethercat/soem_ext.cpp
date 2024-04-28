@@ -87,7 +87,7 @@ NB_MODULE(soem_ext, m) {
     nb::class_<ec_eringt>(m, "ec_eringt");
 
     //TODO: fill in
-    nb::class_<ec_idxstackT>(m, "ec_eringt");
+    nb::class_<ec_idxstackT>(m, "ec_idxstackT");
 
     //TODO: fill in
     nb::class_<ec_SMcommtypet>(m, "ec_SMcommtypet");
@@ -106,6 +106,72 @@ NB_MODULE(soem_ext, m) {
 
     //TODO: fill in
     nb::class_<ecx_contextt>(m, "ecx_contextt")
+        //.def(nb::init<>())
+        .def("__init__", [](ecx_contextt *context)
+        {
+            char IOmap[4096];
+
+            /** Main slave data array.
+             *  Each slave found on the network gets its own record.
+             *  ec_slave[0] is reserved for the master. Structure gets filled
+             *  in by the configuration function ec_config().
+             */
+            ec_slavet   ec_slave[EC_MAXSLAVE];
+            /** number of slaves found on the network */
+            int         ec_slavecount;
+            /** slave group structure */
+            ec_groupt   ec_groups[EC_MAXGROUP];
+
+            /** cache for EEPROM read functions */
+            uint8        esibuf[EC_MAXEEPBUF];
+            /** bitmap for filled cache buffer bytes */
+            uint32       esimap[EC_MAXEEPBITMAP];
+            /** current slave for EEPROM cache buffer */
+            ec_eringt    ec_elist;
+            ec_idxstackT ec_idxstack;
+
+            /** SyncManager Communication Type struct to store data of one slave */
+            ec_SMcommtypet  ec_SMcommtype;
+            /** PDO assign struct to store data of one slave */
+            ec_PDOassignt   ec_PDOassign;
+            /** PDO description struct to store data of one slave */
+            ec_PDOdesct     ec_PDOdesc;
+
+            /** buffer for EEPROM SM data */
+            ec_eepromSMt ec_SM;
+            /** buffer for EEPROM FMMU data */
+            ec_eepromFMMUt ec_FMMU;
+
+            /** Global variable TRUE if error available in error stack */
+            boolean    EcatError = FALSE;
+
+            int64         ec_DCtime;
+            int64         ec_DCtime2;
+
+            ecx_portt      ecx_port;
+            context->port = &ecx_port;
+            context->slavelist = &ec_slave[0];
+            context->slavecount = &ec_slavecount;
+            context->maxslave = EC_MAXSLAVE;
+            context->grouplist = &ec_groups[0];
+            context->maxgroup = EC_MAXGROUP;
+            context->esibuf = &esibuf[0];
+            context->esimap = &esimap[0];
+            context->esislave = 0;
+            context->elist = &ec_elist;
+            context->idxstack = &ec_idxstack;
+            context->ecaterror = &EcatError;
+            context->DCtime = &ec_DCtime;
+            context->SMcommtype = &ec_SMcommtype;
+            context->PDOassign = &ec_PDOassign;
+            context->PDOdesc = &ec_PDOdesc;
+            context->eepSM = &ec_SM;
+            context->eepFMMU = &ec_FMMU;
+            context->FOEhook = nullptr;
+            context->EOEhook = nullptr;
+            context->manualstatechange = 0;
+            context->userdata = nullptr;
+    })
         .def_rw("port", &ecx_contextt::port)
         .def_rw("slavelist", &ecx_contextt::slavelist)
         .def_rw("slavecount", &ecx_contextt::slavecount)
@@ -124,13 +190,18 @@ NB_MODULE(soem_ext, m) {
         .def_rw("PDOdesc", &ecx_contextt::PDOdesc)
         .def_rw("eepSM", &ecx_contextt::eepSM)
         .def_rw("eepFMMU", &ecx_contextt::eepFMMU)
-        // .def_rw("FOEhook", &ecx_contextt::FOEhook);
-        // .def_rw("EOEhook", &ecx_contextt::EOEhook)
+        //.def_rw("FOEhook", &ecx_contextt::FOEhook);
+        //.def_rw("EOEhook", &ecx_contextt::EOEhook)
         .def_rw("manualstatechange", &ecx_contextt::manualstatechange)
         .def_rw("userdata", &ecx_contextt::userdata);
         
 
+    // m.def("ecx_init", [](ecx_contextt *context, const char * ifname) {
+    //     ecx_init(context, ifname);
+    //     });
+    
     m.def("ecx_init", &ecx_init);
+    m.def("ecx_config_init", &ecx_config_init);
     
 
 }
