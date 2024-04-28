@@ -100,7 +100,52 @@ NB_MODULE(soem_ext, m) {
         .def_rw("Ibytes", &ec_slavet::Ibytes)
         .def_rw("inputs", &ec_slavet::inputs)
         .def_rw("Istartbit", &ec_slavet::Istartbit)
-
+        //.def_rw("SM", &ec_slavet::SM)
+        //.def_rw("SMtype", &ec_slavet::SMtype)
+        //.def_rw("FMMU", &ec_slavet::FMMU)
+        .def_rw("FMMU0func", &ec_slavet::FMMU0func)
+        .def_rw("FMMU1func", &ec_slavet::FMMU1func)
+        .def_rw("FMMU2func", &ec_slavet::FMMU2func)
+        .def_rw("FMMU3func", &ec_slavet::FMMU3func)
+        .def_rw("mbx_l", &ec_slavet::mbx_l)
+        .def_rw("mbx_wo", &ec_slavet::mbx_wo)
+        .def_rw("mbx_rl", &ec_slavet::mbx_rl)
+        .def_rw("mbx_ro", &ec_slavet::mbx_ro)
+        .def_rw("mbx_proto", &ec_slavet::mbx_proto)
+        .def_rw("mbx_cnt", &ec_slavet::mbx_cnt)
+        .def_rw("hasdc", &ec_slavet::hasdc)
+        .def_rw("ptype", &ec_slavet::ptype)
+        .def_rw("topology", &ec_slavet::topology)
+        .def_rw("activeports", &ec_slavet::activeports)
+        .def_rw("consumedports", &ec_slavet::consumedports)
+        .def_rw("parent", &ec_slavet::parent)
+        .def_rw("parentport", &ec_slavet::parentport)
+        .def_rw("entryport", &ec_slavet::entryport)
+        .def_rw("DCrtA", &ec_slavet::DCrtA)
+        .def_rw("DCrtB", &ec_slavet::DCrtB)
+        .def_rw("DCrtC", &ec_slavet::DCrtC)
+        .def_rw("DCrtD", &ec_slavet::DCrtD)
+        .def_rw("pdelay", &ec_slavet::pdelay)
+        .def_rw("DCnext", &ec_slavet::DCnext)
+        .def_rw("DCprevious", &ec_slavet::DCprevious)
+        .def_rw("DCcycle", &ec_slavet::DCcycle)
+        .def_rw("DCshift", &ec_slavet::DCshift)
+        .def_rw("DCactive", &ec_slavet::DCactive)
+        .def_rw("configindex", &ec_slavet::configindex)
+        .def_rw("SIIindex", &ec_slavet::SIIindex)
+        .def_rw("eep_8byte", &ec_slavet::eep_8byte)
+        .def_rw("eep_pdi", &ec_slavet::eep_pdi)
+        .def_rw("CoEdetails", &ec_slavet::CoEdetails)
+        .def_rw("FoEdetails", &ec_slavet::FoEdetails)
+        .def_rw("EoEdetails", &ec_slavet::EoEdetails)
+        .def_rw("SoEdetails", &ec_slavet::SoEdetails)
+        .def_rw("Ebuscurrent", &ec_slavet::Ebuscurrent)
+        .def_rw("blockLRW", &ec_slavet::blockLRW)
+        .def_rw("group", &ec_slavet::group)
+        .def_rw("FMMUunused", &ec_slavet::FMMUunused)
+        .def_rw("islost", &ec_slavet::islost)
+        //.def_rw("PO2SOconfig", &ec_slavet::PO2SOconfig)
+        //.def_rw("PO2SOconfigx", &ec_slavet::PO2SOconfigx)
         .def_ro("name", &ec_slavet::name);
 
     //TODO: fill in
@@ -198,7 +243,8 @@ NB_MODULE(soem_ext, m) {
         .def_rw("port", &ecx_contextt::port)
         .def_prop_ro("slavelist", [](ecx_contextt *context) -> nb::typed<nb::list, ec_slavet> {
             nb::typed<nb::list, ec_slavet> subdevices_list;
-            for (int i = 0; i < *(context->slavecount); i++){
+            // first subdevice in slavelist is reserved for the maindevice.
+            for (int i = 0; i < *(context->slavecount) + 1; i++){
                 subdevices_list.append(context->slavelist[i]);
             }
             return subdevices_list;
@@ -225,8 +271,7 @@ NB_MODULE(soem_ext, m) {
         .def_rw("userdata", &ecx_contextt::userdata);
 
     
-    m.def("ecx_init", &ecx_init);
-    m.def("ecx_config_init", &ecx_config_init);
+    
     m.def("ecx_close", &ecx_close);
     m.def("ecx_iserror", &ecx_iserror);
     m.def("ecx_init_redundant", [](ecx_contextt *context, ecx_redportt *redport, const char *ifname, const char *if2name) {
@@ -234,6 +279,17 @@ NB_MODULE(soem_ext, m) {
         // which causes nanobind compile error
         return ecx_init_redundant(context, redport, ifname, (char *)if2name);
         });
+    m.def("ecx_readstate", &ecx_readstate);
+    m.def("ecx_writestate", &ecx_writestate);
+
+    //ethercatconfig.h
+    m.def("ecx_init", &ecx_init);
+    m.def("ecx_config_init", &ecx_config_init);
+    m.def("ecx_config_map_group", &ecx_config_map_group);
+    m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group);
+    m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned);
+    m.def("ecx_recover_slave", &ecx_recover_slave);
+    m.def("ecx_reconfig_slave", &ecx_reconfig_slave);
     
 
 }

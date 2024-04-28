@@ -5,17 +5,48 @@ run using command:
 pip install . && pytest --log-cli-level=INFO -s tests/environments/basic/test_basic_env.py 
 '''
 import logging
-import time
 
 import pyethercat
+import pytest
 
 _logger = logging.getLogger(__name__)
 
-# info about this environment
-NETWORK_ADAPTER_NAME = 'enp0s20f0u1'
-RED_NETWORK_ADAPTER_NAME = 'enp0s20f0u3'
+@pytest.fixture(scope='module')
+def basic_environment():
+    # info about this environment
+    USE_REDUNDANCY = True
+    NETWORK_ADAPTER_NAME = 'enp0s20f0u1'
+    RED_NETWORK_ADAPTER_NAME = 'enp0s20f0u3'
+    NUM_SUBDEVICES = 5
 
-NUM_SUBDEVICES = 5
+
+    adapters = pyethercat.soem.ec_find_adapters()
+    adapter_names = [adapter.name.decode() for adapter in adapters]
+    
+    assert NETWORK_ADAPTER_NAME in adapter_names
+
+    if USE_REDUNDANCY:
+        assert RED_NETWORK_ADAPTER_NAME in adapter_names
+    
+    ctx = pyethercat.soem.ecx_contextt()
+
+    if USE_REDUNDANCY:
+        red_port = pyethercat.soem.ecx_redportt()
+        assert pyethercat.soem.ecx_init_redundant(ctx, red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
+    else:
+        assert pyethercat.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
+    
+
+    # i don't know why but this fails frequently unless the subdevices are power cycled
+    assert  pyethercat.soem.ecx_config_init(ctx, False) == NUM_SUBDEVICES
+    assert  ctx.slavecount == NUM_SUBDEVICES
+    
+    _logger.info('test starting')
+    log_context(ctx)
+    yield ctx
+    _logger.info('test finished')
+    log_context(ctx)
+    pyethercat.soem.ecx_close(ctx)
 
 def log_subdevices(subdevices: list[pyethercat.soem.ec_slavet]):
     for i, subdevice in enumerate(subdevices):
@@ -115,69 +146,20 @@ def log_context(ctx: pyethercat.soem.ecx_contextt):
     log_subdevices(ctx.slavelist)
 
     
+def test_correct_subdevices(basic_environment: pyethercat.soem.ecx_contextt):
 
-def test_init():
-    adapter_name = NETWORK_ADAPTER_NAME
-    ctx = pyethercat.soem.ecx_contextt()
-    adapters = pyethercat.soem.ec_find_adapters()
-    adapter_names = [adapter.name for adapter in adapters]
-    assert adapter_name.encode() in adapter_names
-    assert pyethercat.soem.ecx_init(ctx, adapter_name) > 0
-    pyethercat.soem.ecx_close(ctx)
-    log_context(ctx)
+    ctx = basic_environment
 
-def test_config_init():
+    assert ctx.slavelist[1].name == 'EK1100'
+    assert ctx.slavelist[2].name == 'EL3314'
+    assert ctx.slavelist[3].name == 'EL2088'
+    assert ctx.slavelist[4].name == 'EL3681'
+    assert ctx.slavelist[5].name == 'EL3204'
+    pass
 
-    # I don't know why but ecx_config_init likes to return
-    # -1 about 50% of the time.
-    ctx = pyethercat.soem.ecx_contextt()
-    assert pyethercat.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
-    num_subdevices_found = pyethercat.soem.ecx_config_init(ctx, False)
-    pyethercat.soem.ecx_close(ctx)
-    log_context(ctx)
-    assert  num_subdevices_found == NUM_SUBDEVICES
-    assert  ctx.slavecount == NUM_SUBDEVICES
+def test_process_data():
+    pass
 
-def test_config_init_iserror():
-
-    # I don't know why but ecx_config_init likes to return
-    # -1 about 50% of the time.
-    ctx = pyethercat.soem.ecx_contextt()
-    assert pyethercat.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
-    num_subdevices_found = pyethercat.soem.ecx_config_init(ctx, False)
-    pyethercat.soem.ecx_close(ctx)
-    log_context(ctx)
-    assert not pyethercat.soem.ecx_iserror(ctx)
-    assert  num_subdevices_found == NUM_SUBDEVICES
-    assert  ctx.slavecount == NUM_SUBDEVICES
-
-def test_config_init_subdevice_infos():
-
-    ctx = pyethercat.soem.ecx_contextt()
-    assert pyethercat.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
-    num_subdevices_found = pyethercat.soem.ecx_config_init(ctx, False)
-    log_context(ctx)
-    assert not pyethercat.soem.ecx_iserror(ctx)
-    assert num_subdevices_found == NUM_SUBDEVICES
-
-    pyethercat.soem.ecx_close(ctx)
-
-def test_redundant_init():
-    ctx = pyethercat.soem.ecx_contextt()
-    red_port = pyethercat.soem.ecx_redportt()
-
-    adapters = pyethercat.soem.ec_find_adapters()
-    adapter_names = [adapter.name for adapter in adapters]
-    assert NETWORK_ADAPTER_NAME.encode() in adapter_names
-    assert RED_NETWORK_ADAPTER_NAME.encode() in adapter_names
-
-    assert pyethercat.soem.ecx_init_redundant(ctx, red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
-    num_subdevices_found = pyethercat.soem.ecx_config_init(ctx, False)
-    log_context(ctx)
-    assert not pyethercat.soem.ecx_iserror(ctx)
-    assert num_subdevices_found == NUM_SUBDEVICES
-
-    pyethercat.soem.ecx_close(ctx)
 
 
 
