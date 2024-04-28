@@ -61,6 +61,10 @@ NB_MODULE(soem_ext, m) {
     //TODO: fill in
     nb::class_<ecx_portt>(m, "ecx_portt");
 
+    //TODO: fill in
+    nb::class_<ecx_redportt>(m, "ecx_redportt")
+        .def(nb::init<>());
+
     // ethercatmain.h
     nb::class_<ec_adaptert>(m, "ec_adaptert")
         .def_prop_ro("name", [](ec_adaptert *adp) -> nb::bytes { return nb::bytes(adp->name); })
@@ -78,7 +82,26 @@ NB_MODULE(soem_ext, m) {
     });
 
     //TODO: fill in
-    nb::class_<ec_slavet>(m, "ec_slavet");
+    nb::class_<ec_slavet>(m, "ec_slavet")
+        .def_rw("state", &ec_slavet::state)
+        .def_rw("ALstatuscode", &ec_slavet::ALstatuscode)
+        .def_rw("configadr", &ec_slavet::configadr)
+        .def_rw("aliasadr", &ec_slavet::aliasadr)
+        .def_rw("eep_man", &ec_slavet::eep_man)
+        .def_rw("eep_id", &ec_slavet::eep_id)
+        .def_rw("eep_rev", &ec_slavet::eep_rev)
+        .def_rw("Itype", &ec_slavet::Itype)
+        .def_rw("Dtype", &ec_slavet::Dtype)
+        .def_rw("Obits", &ec_slavet::Obits)
+        .def_rw("Obytes", &ec_slavet::Obytes)
+        .def_rw("outputs", &ec_slavet::outputs)
+        .def_rw("Ostartbit", &ec_slavet::Ostartbit)
+        .def_rw("Ibits", &ec_slavet::Ibits)
+        .def_rw("Ibytes", &ec_slavet::Ibytes)
+        .def_rw("inputs", &ec_slavet::inputs)
+        .def_rw("Istartbit", &ec_slavet::Istartbit)
+
+        .def_ro("name", &ec_slavet::name);
 
     //TODO: fill in
     nb::class_<ec_groupt>(m, "ec_groupt");
@@ -173,7 +196,13 @@ NB_MODULE(soem_ext, m) {
             context->userdata = nullptr;
     })
         .def_rw("port", &ecx_contextt::port)
-        .def_rw("slavelist", &ecx_contextt::slavelist)
+        .def_prop_ro("slavelist", [](ecx_contextt *context) -> nb::typed<nb::list, ec_slavet> {
+            nb::typed<nb::list, ec_slavet> subdevices_list;
+            for (int i = 0; i < *(context->slavecount); i++){
+                subdevices_list.append(context->slavelist[i]);
+            }
+            return subdevices_list;
+        })
         .def_rw("slavecount", &ecx_contextt::slavecount)
         .def_rw("maxslave", &ecx_contextt::maxslave)
         .def_rw("grouplist", &ecx_contextt::grouplist)
@@ -194,14 +223,17 @@ NB_MODULE(soem_ext, m) {
         //.def_rw("EOEhook", &ecx_contextt::EOEhook)
         .def_rw("manualstatechange", &ecx_contextt::manualstatechange)
         .def_rw("userdata", &ecx_contextt::userdata);
-        
 
-    // m.def("ecx_init", [](ecx_contextt *context, const char * ifname) {
-    //     ecx_init(context, ifname);
-    //     });
     
     m.def("ecx_init", &ecx_init);
     m.def("ecx_config_init", &ecx_config_init);
+    m.def("ecx_close", &ecx_close);
+    m.def("ecx_iserror", &ecx_iserror);
+    m.def("ecx_init_redundant", [](ecx_contextt *context, ecx_redportt *redport, const char *ifname, const char *if2name) {
+        // if2name is incorrectly typed as char * instead of const char *
+        // which causes nanobind compile error
+        return ecx_init_redundant(context, redport, ifname, (char *)if2name);
+        });
     
 
 }
