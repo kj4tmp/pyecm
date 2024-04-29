@@ -14,7 +14,7 @@ classifiers = [
 ]
 
 [build-system]
-requires = ["scikit-build-core >=0.9.1"]
+requires = ["scikit-build-core >=0.9.1", "typing_extensions"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -30,6 +30,18 @@ wheel.py-api = "cp312"
 [project.urls]
 Homepage = "https://github.com/kj4tmp/pyecm"
 Issues = "https://github.com/kj4tmp/pyecm/issues"
+
+[tool.cibuildwheel]
+# Necessary to see build output from the actual compilation
+build-verbosity = 1
+
+# Optional: run pytest to ensure that the package was correctly built
+# test-command = "pytest {project}/tests"
+# test-requires = "pytest"
+
+# Needed for full C++17 support on macOS
+[tool.cibuildwheel.macos.environment]
+MACOSX_DEPLOYMENT_TARGET = "10.14"
 
 
 # pyproject.toml
