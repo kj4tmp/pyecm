@@ -64,6 +64,21 @@ nanobind_add_module(
 )
 target_link_libraries(soem_ext PUBLIC soem)
 
+if(WIN32)
+  # Add the directory containing pcap.h to the include directories
+  # this is a hack to temporarily fix https://github.com/OpenEtherCATsociety/SOEM/issues/785
+  target_include_directories(soem_ext PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/ext/SOEM/oshw/win32/wpcap/Include
+  )
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    target_link_directories(soem_ext PUBLIC ${CMAKE_CURRENT_LIST_DIR}/ext/SOEM/oshw/win32/wpcap/Lib/x64)
+  elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    target_link_directories(soem_ext PUBLIC ${CMAKE_CURRENT_LIST_DIR}/ext/SOEM/oshw/win32/wpcap/Lib)
+  endif()
+  
+endif()
+
+
 nanobind_add_stub(
   soem_ext_stub
   MODULE soem_ext
