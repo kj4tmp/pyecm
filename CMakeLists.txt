@@ -60,14 +60,14 @@ nanobind_add_module(
   NB_STATIC
 
   # Source code goes here
-  src/pyethercat/soem_ext.cpp
+  pyethercat/soem_ext.cpp
 )
 target_link_libraries(soem_ext PUBLIC soem)
 
 nanobind_add_stub(
   soem_ext_stub
   MODULE soem_ext
-  OUTPUT "${CMAKE_SOURCE_DIR}/src/pyethercat/soem/soem_ext.pyi"
+  OUTPUT "${CMAKE_SOURCE_DIR}/pyethercat/soem/soem_ext.pyi"
   PYTHON_PATH $<TARGET_FILE_DIR:soem_ext>
   DEPENDS soem_ext
   MARKER_FILE py.typed
@@ -75,5 +75,5 @@ nanobind_add_stub(
 # Install directive for scikit-build-core
 
 install(TARGETS soem_ext LIBRARY DESTINATION "pyethercat/soem")
-install(FILES "${CMAKE_SOURCE_DIR}/src/pyethercat/soem/soem_ext.pyi" DESTINATION "pyethercat/soem")
+install(FILES "${CMAKE_SOURCE_DIR}/pyethercat/soem/soem_ext.pyi" DESTINATION "pyethercat/soem")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION "pyethercat/soem")
