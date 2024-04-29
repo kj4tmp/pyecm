@@ -1,5 +1,5 @@
 [project]
-name = "pyethercat"
+name = "pyecm"
 version = "0.0.1"
 authors = [
   { name="Jeff Anderson", email="kj4tmp@gmail.com" },
@@ -28,8 +28,8 @@ build-dir = "build/{wheel_tag}"
 wheel.py-api = "cp312"
 
 [project.urls]
-Homepage = "https://github.com/kj4tmp/pyethercat"
-Issues = "https://github.com/kj4tmp/pyethercat/issues"
+Homepage = "https://github.com/kj4tmp/pyecm"
+Issues = "https://github.com/kj4tmp/pyecm/issues"
 
 
 # pyproject.toml

@@ -1,5 +1,5 @@
 
-from pyethercat.soem import ecx_contextt, ecx_init
+from pyecm.soem import ecx_contextt, ecx_init
 
 
 def test_ecx_init():

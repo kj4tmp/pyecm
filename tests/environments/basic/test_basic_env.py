@@ -6,7 +6,7 @@ pip install . && pytest --log-cli-level=INFO -s tests/environments/basic/test_ba
 '''
 import logging
 
-import pyethercat
+import pyecm
 import pytest
 
 _logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def basic_environment():
     NUM_SUBDEVICES = 5
 
 
-    adapters = pyethercat.soem.ec_find_adapters()
+    adapters = pyecm.soem.ec_find_adapters()
     adapter_names = [adapter.name.decode() for adapter in adapters]
     
     assert NETWORK_ADAPTER_NAME in adapter_names
@@ -28,17 +28,17 @@ def basic_environment():
     if USE_REDUNDANCY:
         assert RED_NETWORK_ADAPTER_NAME in adapter_names
     
-    ctx = pyethercat.soem.ecx_contextt()
+    ctx = pyecm.soem.ecx_contextt()
 
     if USE_REDUNDANCY:
-        red_port = pyethercat.soem.ecx_redportt()
-        assert pyethercat.soem.ecx_init_redundant(ctx, red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
+        red_port = pyecm.soem.ecx_redportt()
+        assert pyecm.soem.ecx_init_redundant(ctx, red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
     else:
-        assert pyethercat.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
+        assert pyecm.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
     
 
     # i don't know why but this fails frequently unless the subdevices are power cycled
-    assert  pyethercat.soem.ecx_config_init(ctx, False) == NUM_SUBDEVICES
+    assert  pyecm.soem.ecx_config_init(ctx, False) == NUM_SUBDEVICES
     assert  ctx.slavecount == NUM_SUBDEVICES
     
     _logger.info('test starting')
@@ -46,9 +46,9 @@ def basic_environment():
     yield ctx
     _logger.info('test finished')
     log_context(ctx)
-    pyethercat.soem.ecx_close(ctx)
+    pyecm.soem.ecx_close(ctx)
 
-def log_subdevices(subdevices: list[pyethercat.soem.ec_slavet]):
+def log_subdevices(subdevices: list[pyecm.soem.ec_slavet]):
     for i, subdevice in enumerate(subdevices):
         if i ==0:
             _logger.info("MainDevice:")
@@ -122,7 +122,7 @@ def log_subdevices(subdevices: list[pyethercat.soem.ec_slavet]):
     # _logger.info(f"{subdevice.name=}")
 
 
-def log_context(ctx: pyethercat.soem.ecx_contextt):
+def log_context(ctx: pyecm.soem.ecx_contextt):
     _logger.info(f"{ctx.port=}")
     _logger.info(f"{ctx.slavelist=}")
     _logger.info(f"{ctx.slavecount=}")
@@ -146,7 +146,7 @@ def log_context(ctx: pyethercat.soem.ecx_contextt):
     log_subdevices(ctx.slavelist)
 
     
-def test_correct_subdevices(basic_environment: pyethercat.soem.ecx_contextt):
+def test_correct_subdevices(basic_environment: pyecm.soem.ecx_contextt):
 
     ctx = basic_environment
 

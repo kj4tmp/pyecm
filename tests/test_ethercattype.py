@@ -1,6 +1,6 @@
 import logging
 
-from pyethercat.soem import ec_err_type, ec_errort, ec_state, ec_timet
+from pyecm.soem import ec_err_type, ec_errort, ec_state, ec_timet
 
 _logger = logging.getLogger(__name__)
 

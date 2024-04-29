@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15...3.26)
 
-project(pyethercat LANGUAGES CXX)
+project(pyecm LANGUAGES CXX)
 
 if (NOT SKBUILD)
   message(WARNING "\
@@ -60,20 +60,20 @@ nanobind_add_module(
   NB_STATIC
 
   # Source code goes here
-  pyethercat/soem_ext.cpp
+  pyecm/soem_ext.cpp
 )
 target_link_libraries(soem_ext PUBLIC soem)
 
 nanobind_add_stub(
   soem_ext_stub
   MODULE soem_ext
-  OUTPUT "${CMAKE_SOURCE_DIR}/pyethercat/soem/soem_ext.pyi"
+  OUTPUT "${CMAKE_SOURCE_DIR}/pyecm/soem/soem_ext.pyi"
   PYTHON_PATH $<TARGET_FILE_DIR:soem_ext>
   DEPENDS soem_ext
   MARKER_FILE py.typed
 )
 # Install directive for scikit-build-core
 
-install(TARGETS soem_ext LIBRARY DESTINATION "pyethercat/soem")
-install(FILES "${CMAKE_SOURCE_DIR}/pyethercat/soem/soem_ext.pyi" DESTINATION "pyethercat/soem")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION "pyethercat/soem")
+install(TARGETS soem_ext LIBRARY DESTINATION "pyecm/soem")
+install(FILES "${CMAKE_SOURCE_DIR}/pyecm/soem/soem_ext.pyi" DESTINATION "pyecm/soem")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION "pyecm/soem")

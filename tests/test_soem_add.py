@@ -1,5 +1,5 @@
 
-from pyethercat.soem import add
+from pyecm.soem import add
 
 
 def test_soem_add():

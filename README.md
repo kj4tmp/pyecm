@@ -1,4 +1,4 @@
-# pyethercat
+# pyecm
 An EtherCAT MainDevice in Python
 
 

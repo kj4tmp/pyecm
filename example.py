@@ -1,5 +1,5 @@
-import pyethercat
+import pyecm
 
-print(pyethercat.soem.add(1,2))
+print(pyecm.soem.add(1,2))
 
 
