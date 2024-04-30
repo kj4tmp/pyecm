@@ -11,6 +11,10 @@ An EtherCAT MainDevice in Python, fully free and open source.
 
 ## Development
 1. clone repo (and submodules)
+
+    > use `git clone <repo clone url> --recursive`
+
+
 1. install vscode
 1. install docker desktop
 1. install vscode dev containers extension

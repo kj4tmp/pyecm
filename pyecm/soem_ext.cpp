@@ -289,5 +289,8 @@ NB_MODULE(soem_ext, m) {
     m.def("ecx_recover_slave", &ecx_recover_slave);
     m.def("ecx_reconfig_slave", &ecx_reconfig_slave);
 
+    //ethercatdc.h
+    m.def("ecx_configdc", &ecx_configdc);
+
 
 }
