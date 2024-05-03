@@ -1,4 +1,6 @@
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/stl/vector.h>
 #include <ethercat.h>
 namespace nb = nanobind;
 
@@ -175,18 +177,18 @@ NB_MODULE(soem_ext, m) {
     //TODO: fill in
     nb::class_<ecx_contextt>(m, "ecx_contextt")
         //.def(nb::init<>())
-        .def("__init__", [](ecx_contextt *context)
+        .def("__init__", [](ecx_contextt *context, uint16_t maxslave, uint8_t maxgroup)
         {
             /** Main slave data array.
              *  Each slave found on the network gets its own record.
              *  ec_slave[0] is reserved for the master. Structure gets filled
              *  in by the configuration function ec_config().
              */
-            ec_slavet   ec_slave[EC_MAXSLAVE];
+            ec_slavet   ec_slave[maxslave];
             /** number of slaves found on the network */
             int         ec_slavecount;
             /** slave group structure */
-            ec_groupt   ec_groups[EC_MAXGROUP];
+            ec_groupt   ec_groups[maxgroup];
 
             /** cache for EEPROM read functions */
             uint8        esibuf[EC_MAXEEPBUF];
@@ -212,15 +214,14 @@ NB_MODULE(soem_ext, m) {
             boolean    EcatError = FALSE;
 
             int64         ec_DCtime;
-            int64         ec_DCtime2;
 
             ecx_portt      ecx_port;
             context->port = &ecx_port;
             context->slavelist = &ec_slave[0];
             context->slavecount = &ec_slavecount;
-            context->maxslave = EC_MAXSLAVE;
+            context->maxslave = maxslave;
             context->grouplist = &ec_groups[0];
-            context->maxgroup = EC_MAXGROUP;
+            context->maxgroup = maxgroup;
             context->esibuf = &esibuf[0];
             context->esimap = &esimap[0];
             context->esislave = 0;
@@ -237,7 +238,7 @@ NB_MODULE(soem_ext, m) {
             context->EOEhook = nullptr;
             context->manualstatechange = 0;
             context->userdata = nullptr;
-    })
+    }, "maxslave"_a, "maxgroup"_a)
         .def_rw("port", &ecx_contextt::port)
         .def_prop_ro("slavelist", [](ecx_contextt *context) -> nb::typed<nb::list, ec_slavet> {
             nb::typed<nb::list, ec_slavet> subdevices_list;
@@ -249,7 +250,20 @@ NB_MODULE(soem_ext, m) {
         })
         .def_rw("slavecount", &ecx_contextt::slavecount)
         .def_rw("maxslave", &ecx_contextt::maxslave)
-        .def_rw("grouplist", &ecx_contextt::grouplist)
+        .def_prop_rw("grouplist", [](ecx_contextt &context) -> nb::typed<nb::list, ec_groupt> {
+            nb::typed<nb::list, ec_groupt> grouplist;
+            for (int i = 0; i < context.maxgroup; i++){
+                grouplist.append(context.grouplist[i]);
+            }
+            return grouplist;
+        }, [] (ecx_contextt &context, std::vector<ec_groupt> grouplist) {
+            if (grouplist.size() > context.maxgroup) {
+                throw std::invalid_argument("attempted to set grouplist having length larger than maxgroup");
+            }
+            for (std::size_t i = 0; i < grouplist.size(); i++){
+                context.grouplist[i] = grouplist[i];
+            }
+        })
         .def_rw("maxgroup", &ecx_contextt::maxgroup)
         .def_rw("esibuf", &ecx_contextt::esibuf)
         .def_rw("esimap", &ecx_contextt::esimap)
@@ -283,7 +297,10 @@ NB_MODULE(soem_ext, m) {
     //ethercatconfig.h
     m.def("ecx_init", &ecx_init);
     m.def("ecx_config_init", &ecx_config_init);
-    m.def("ecx_config_map_group", &ecx_config_map_group);
+    m.def("ecx_config_map_group", [](ecx_contextt *context, nb::ndarray<uint8_t, nb::ndim<1>,
+                                nb::c_contig,nb::device::cpu> IOmap, uint8 group){
+        return ecx_config_overlap_map_group(context, IOmap.data(), group);
+    });
     m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group);
     m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned);
     m.def("ecx_recover_slave", &ecx_recover_slave);
