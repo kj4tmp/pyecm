@@ -1,6 +1,10 @@
+import logging
+
 import pytest
 
-from pyecm.soem import ecx_contextt, ecx_init
+from pyecm.soem import ecx_config_init, ecx_config_map_group, ecx_contextt, ecx_init
+
+_logger = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize(
@@ -33,3 +37,7 @@ def test_ecx_contextt_compatible_arguments(maxslave, maxgroup):
 def test_ecx_init():
     context = ecx_contextt(maxslave=3, maxgroup=2)
     assert ecx_init(context, "eth0") == 0
+    assert ecx_config_init(context, False) == -1
+    iomap = bytearray(256)
+    assert ecx_config_map_group(context, iomap, 1) == 0
+    _logger.info(f"{iomap=}")
