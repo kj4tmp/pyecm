@@ -1,5 +1,4 @@
 #include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
 #include <nanobind/stl/vector.h>
 #include <ethercat.h>
 #include <memory>
@@ -273,7 +272,7 @@ NB_MODULE(soem_ext, m)
     // ethercatconfig.h
     m.def("ecx_init", &ecx_init);
     m.def("ecx_config_init", &ecx_config_init);
-    m.def("ecx_config_map_group", [](ecx_contextt *context, nb::ndarray<uint8_t, nb::ndim<1>, nb::c_contig, nb::device::cpu> IOmap, uint8 group)
+    m.def("ecx_config_map_group", [](ecx_contextt *context, std::vector<uint8_t> IOmap, uint8 group)
           { return ecx_config_overlap_map_group(context, IOmap.data(), group); });
     m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group);
     m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned);
