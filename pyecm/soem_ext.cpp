@@ -7,21 +7,23 @@ namespace nb = nanobind;
 
 using namespace nb::literals;
 
-
-NB_MODULE(soem_ext, m) {
-    m.def("add", [](int a, int b) { return a + b; }, "a"_a, "b"_a);
-
+NB_MODULE(soem_ext, m)
+{
+    m.def(
+        "add", [](int a, int b)
+        { return a + b; },
+        "a"_a, "b"_a);
 
     // ethercat.h
     // nothing in here, yeet
 
     // from osal.h
-    nb::class_<ec_timet> (m, "ec_timet")
+    nb::class_<ec_timet>(m, "ec_timet")
         .def_rw("sec", &ec_timet::sec)
         .def_rw("usec", &ec_timet::usec);
 
     // ethercattype.h
-    nb::enum_<ec_err_type> (m, "ec_err_type")
+    nb::enum_<ec_err_type>(m, "ec_err_type")
         .value("EC_ERR_TYPE_SDO_ERROR", ec_err_type::EC_ERR_TYPE_SDO_ERROR)
         .value("EC_ERR_TYPE_EMERGENCY", ec_err_type::EC_ERR_TYPE_EMERGENCY)
         .value("EC_ERR_TYPE_PACKET_ERROR", ec_err_type::EC_ERR_TYPE_PACKET_ERROR)
@@ -33,8 +35,8 @@ NB_MODULE(soem_ext, m) {
         .value("EC_ERR_TYPE_MBX_ERROR", ec_err_type::EC_ERR_TYPE_MBX_ERROR)
         .value("EC_ERR_TYPE_FOE_FILE_NOTFOUND", ec_err_type::EC_ERR_TYPE_FOE_FILE_NOTFOUND)
         .value("EC_ERR_TYPE_EOE_INVALID_RX_DATA", ec_err_type::EC_ERR_TYPE_EOE_INVALID_RX_DATA);
-    
-    nb::enum_<ec_state> (m, "ec_state")
+
+    nb::enum_<ec_state>(m, "ec_state")
         .value("EC_STATE_NONE", ec_state::EC_STATE_NONE)
         .value("EC_STATE_INIT", ec_state::EC_STATE_INIT)
         .value("EC_STATE_PRE_OP", ec_state::EC_STATE_PRE_OP)
@@ -43,7 +45,6 @@ NB_MODULE(soem_ext, m) {
         .value("EC_STATE_OPERATIONAL", ec_state::EC_STATE_OPERATIONAL)
         .value("EC_STATE_ACK", ec_state::EC_STATE_ACK)
         .value("EC_STATE_ERROR", ec_state::EC_STATE_ERROR);
-
 
     nb::class_<ec_errort>(m, "ec_errort")
         .def_rw("Time", &ec_errort::Time)
@@ -59,21 +60,23 @@ NB_MODULE(soem_ext, m) {
         .def_rw("w1", &ec_errort::w1)
         .def_rw("w2", &ec_errort::w2);
 
-
-    //nicdrv.h
-    //TODO: fill in
+    // nicdrv.h
+    // TODO: fill in
     nb::class_<ecx_portt>(m, "ecx_portt");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ecx_redportt>(m, "ecx_redportt")
         .def(nb::init<>());
 
     // ethercatmain.h
     nb::class_<ec_adaptert>(m, "ec_adaptert")
-        .def_prop_ro("name", [](ec_adaptert *adp) -> nb::bytes { return nb::bytes(adp->name); })
-        .def_prop_ro("desc", [](ec_adaptert *adp) -> nb::bytes { return nb::bytes(adp->desc); });
+        .def_prop_ro("name", [](ec_adaptert *adp) -> nb::bytes
+                     { return nb::bytes(adp->name); })
+        .def_prop_ro("desc", [](ec_adaptert *adp) -> nb::bytes
+                     { return nb::bytes(adp->desc); });
 
-    m.def("ec_find_adapters", []() -> nb::typed<nb::list, ec_adaptert> {
+    m.def("ec_find_adapters", []() -> nb::typed<nb::list, ec_adaptert>
+          {
         ec_adaptert *adapters = ec_find_adapters();
         nb::typed<nb::list, ec_adaptert> adapter_list;
         while (adapters != nullptr) {
@@ -81,10 +84,9 @@ NB_MODULE(soem_ext, m) {
             adapters = adapters->next;
         }
         ec_free_adapters(adapters);
-        return adapter_list;
-    });
+        return adapter_list; });
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_slavet>(m, "ec_slavet")
         .def_rw("state", &ec_slavet::state)
         .def_rw("ALstatuscode", &ec_slavet::ALstatuscode)
@@ -151,35 +153,36 @@ NB_MODULE(soem_ext, m) {
         //.def_rw("PO2SOconfigx", &ec_slavet::PO2SOconfigx)
         .def_ro("name", &ec_slavet::name);
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_groupt>(m, "ec_groupt");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_eringt>(m, "ec_eringt");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_idxstackT>(m, "ec_idxstackT");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_SMcommtypet>(m, "ec_SMcommtypet");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_PDOassignt>(m, "ec_PDOassignt");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_PDOdesct>(m, "ec_PDOdesct");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_eepromSMt>(m, "ec_eepromSMt");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ec_eepromFMMUt>(m, "ec_eepromFMMUt");
 
-    //TODO: fill in
+    // TODO: fill in
     nb::class_<ecx_contextt>(m, "ecx_contextt")
         //.def(nb::init<>())
-        .def("__init__", [](ecx_contextt *context, uint16_t maxslave, uint8_t maxgroup)
-        {
+        .def(
+            "__init__", [](ecx_contextt *context, uint16_t maxslave, uint8_t maxgroup)
+            {
             if (maxslave == 0) {
                 throw std::invalid_argument("maxslave cannot be zero.");
             }
@@ -207,33 +210,38 @@ NB_MODULE(soem_ext, m) {
             context->FOEhook = nullptr;
             context->EOEhook = nullptr;
             context->manualstatechange = 0;
-            context->userdata = nullptr;
-    }, "maxslave"_a, "maxgroup"_a)
+            context->userdata = nullptr; },
+            "maxslave"_a, "maxgroup"_a)
         .def_rw("port", &ecx_contextt::port)
-        .def_prop_ro("slavelist", [](ecx_contextt *context) -> nb::typed<nb::list, ec_slavet> {
+        .def_prop_ro("slavelist", [](ecx_contextt *context) -> nb::typed<nb::list, ec_slavet>
+                     {
             nb::typed<nb::list, ec_slavet> subdevices_list;
             // first subdevice in slavelist is reserved for the maindevice.
             for (int i = 0; i < *(context->slavecount) + 1; i++){
                 subdevices_list.append(context->slavelist[i]);
             }
-            return subdevices_list;
-        })
+            return subdevices_list; })
         .def_rw("slavecount", &ecx_contextt::slavecount)
         .def_rw("maxslave", &ecx_contextt::maxslave)
-        .def_prop_rw("grouplist", [](ecx_contextt &context) -> nb::typed<nb::list, ec_groupt> {
+        .def_prop_rw(
+            "grouplist", [](ecx_contextt &context) -> nb::typed<nb::list, ec_groupt>
+            {
             nb::typed<nb::list, ec_groupt> grouplist;
             for (int i = 0; i < context.maxgroup; i++){
                 grouplist.append(context.grouplist[i]);
             }
-            return grouplist;
-        }, [] (ecx_contextt &context, std::vector<ec_groupt> grouplist) {
-            if (grouplist.size() > context.maxgroup) {
-                throw std::invalid_argument("attempted to set grouplist having length larger than maxgroup");
-            }
-            for (std::size_t i = 0; i < grouplist.size(); i++){
-                context.grouplist[i] = grouplist[i];
-            }
-        })
+            return grouplist; },
+            [](ecx_contextt &context, std::vector<ec_groupt> grouplist)
+            {
+                if (grouplist.size() > context.maxgroup)
+                {
+                    throw std::invalid_argument("attempted to set grouplist having length larger than maxgroup");
+                }
+                for (std::size_t i = 0; i < grouplist.size(); i++)
+                {
+                    context.grouplist[i] = grouplist[i];
+                }
+            })
         .def_rw("maxgroup", &ecx_contextt::maxgroup)
         .def_rw("esibuf", &ecx_contextt::esibuf)
         .def_rw("esimap", &ecx_contextt::esimap)
@@ -252,32 +260,26 @@ NB_MODULE(soem_ext, m) {
         .def_rw("manualstatechange", &ecx_contextt::manualstatechange)
         .def_rw("userdata", &ecx_contextt::userdata);
 
-    
-    
     m.def("ecx_close", &ecx_close);
     m.def("ecx_iserror", &ecx_iserror);
-    m.def("ecx_init_redundant", [](ecx_contextt *context, ecx_redportt *redport, const char *ifname, const char *if2name) {
+    m.def("ecx_init_redundant", [](ecx_contextt *context, ecx_redportt *redport, const char *ifname, const char *if2name)
+          {
         // if2name is incorrectly typed as char * instead of const char *
         // which causes nanobind compile error
-        return ecx_init_redundant(context, redport, ifname, (char *)if2name);
-        });
+        return ecx_init_redundant(context, redport, ifname, (char *)if2name); });
     m.def("ecx_readstate", &ecx_readstate);
     m.def("ecx_writestate", &ecx_writestate);
 
-    //ethercatconfig.h
+    // ethercatconfig.h
     m.def("ecx_init", &ecx_init);
     m.def("ecx_config_init", &ecx_config_init);
-    m.def("ecx_config_map_group", [](ecx_contextt *context, nb::ndarray<uint8_t, nb::ndim<1>,
-                                nb::c_contig,nb::device::cpu> IOmap, uint8 group){
-        return ecx_config_overlap_map_group(context, IOmap.data(), group);
-    });
+    m.def("ecx_config_map_group", [](ecx_contextt *context, nb::ndarray<uint8_t, nb::ndim<1>, nb::c_contig, nb::device::cpu> IOmap, uint8 group)
+          { return ecx_config_overlap_map_group(context, IOmap.data(), group); });
     m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group);
     m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned);
     m.def("ecx_recover_slave", &ecx_recover_slave);
     m.def("ecx_reconfig_slave", &ecx_reconfig_slave);
 
-    //ethercatdc.h
+    // ethercatdc.h
     m.def("ecx_configdc", &ecx_configdc);
-
-
 }
