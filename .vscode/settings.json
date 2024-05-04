@@ -61,5 +61,6 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "editor.formatOnSave": true,
 }
