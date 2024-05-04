@@ -1,56 +1,63 @@
-'''
+"""
 
 run using command:
 
-pip install . && pytest --log-cli-level=INFO -s tests/environments/basic/test_basic_env.py 
-'''
+pip install . && pytest --log-cli-level=INFO -s tests/environments/basic/test_basic_env.py
+"""
+
 import logging
 
-import pyecm
 import pytest
+
+import pyecm
 
 _logger = logging.getLogger(__name__)
 
-@pytest.fixture(scope='module')
+
+@pytest.fixture(scope="module")
 def basic_environment():
     # info about this environment
     USE_REDUNDANCY = True
-    NETWORK_ADAPTER_NAME = 'enp0s20f0u1'
-    RED_NETWORK_ADAPTER_NAME = 'enp0s20f0u3'
+    NETWORK_ADAPTER_NAME = "enp0s20f0u1"
+    RED_NETWORK_ADAPTER_NAME = "enp0s20f0u3"
     NUM_SUBDEVICES = 5
-
 
     adapters = pyecm.soem.ec_find_adapters()
     adapter_names = [adapter.name.decode() for adapter in adapters]
-    
+
     assert NETWORK_ADAPTER_NAME in adapter_names
 
     if USE_REDUNDANCY:
         assert RED_NETWORK_ADAPTER_NAME in adapter_names
-    
+
     ctx = pyecm.soem.ecx_contextt()
 
     if USE_REDUNDANCY:
         red_port = pyecm.soem.ecx_redportt()
-        assert pyecm.soem.ecx_init_redundant(ctx, red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
+        assert (
+            pyecm.soem.ecx_init_redundant(
+                ctx, red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME
+            )
+            > 0
+        )
     else:
         assert pyecm.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
-    
 
     # i don't know why but this fails frequently unless the subdevices are power cycled
-    assert  pyecm.soem.ecx_config_init(ctx, False) == NUM_SUBDEVICES
-    assert  ctx.slavecount == NUM_SUBDEVICES
-    
-    _logger.info('test starting')
+    assert pyecm.soem.ecx_config_init(ctx, False) == NUM_SUBDEVICES
+    assert ctx.slavecount == NUM_SUBDEVICES
+
+    _logger.info("test starting")
     log_context(ctx)
     yield ctx
-    _logger.info('test finished')
+    _logger.info("test finished")
     log_context(ctx)
     pyecm.soem.ecx_close(ctx)
 
+
 def log_subdevices(subdevices: list[pyecm.soem.ec_slavet]):
     for i, subdevice in enumerate(subdevices):
-        if i ==0:
+        if i == 0:
             _logger.info("MainDevice:")
         else:
             _logger.info(f"SubDevice: {i-1}")
@@ -145,23 +152,17 @@ def log_context(ctx: pyecm.soem.ecx_contextt):
     _logger.info(f"{ctx.userdata=}")
     log_subdevices(ctx.slavelist)
 
-    
-def test_correct_subdevices(basic_environment: pyecm.soem.ecx_contextt):
 
+def test_correct_subdevices(basic_environment: pyecm.soem.ecx_contextt):
     ctx = basic_environment
 
-    assert ctx.slavelist[1].name == 'EK1100'
-    assert ctx.slavelist[2].name == 'EL3314'
-    assert ctx.slavelist[3].name == 'EL2088'
-    assert ctx.slavelist[4].name == 'EL3681'
-    assert ctx.slavelist[5].name == 'EL3204'
+    assert ctx.slavelist[1].name == "EK1100"
+    assert ctx.slavelist[2].name == "EL3314"
+    assert ctx.slavelist[3].name == "EL2088"
+    assert ctx.slavelist[4].name == "EL3681"
+    assert ctx.slavelist[5].name == "EL3204"
     pass
+
 
 def test_process_data():
     pass
-
-
-
-
-
-

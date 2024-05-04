@@ -5,7 +5,6 @@ import pyecm
 _logger = logging.getLogger(__name__)
 
 
-
 def test_ec_find_adapters():
     adapters = pyecm.soem.ec_find_adapters()
     for i, adapter in enumerate(adapters):

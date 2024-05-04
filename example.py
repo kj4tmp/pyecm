@@ -1,5 +1,3 @@
 import pyecm
 
-print(pyecm.soem.add(1,2))
-
-
+print(pyecm.soem.add(1, 2))

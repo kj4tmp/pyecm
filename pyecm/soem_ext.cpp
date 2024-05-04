@@ -2,6 +2,7 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/vector.h>
 #include <ethercat.h>
+#include <memory>
 namespace nb = nanobind;
 
 using namespace nb::literals;
@@ -179,61 +180,30 @@ NB_MODULE(soem_ext, m) {
         //.def(nb::init<>())
         .def("__init__", [](ecx_contextt *context, uint16_t maxslave, uint8_t maxgroup)
         {
-            /** Main slave data array.
-             *  Each slave found on the network gets its own record.
-             *  ec_slave[0] is reserved for the master. Structure gets filled
-             *  in by the configuration function ec_config().
-             */
-            ec_slavet   ec_slave[maxslave];
-            /** number of slaves found on the network */
-            int         ec_slavecount;
-            /** slave group structure */
-            ec_groupt   ec_groups[maxgroup];
-
-            /** cache for EEPROM read functions */
-            uint8        esibuf[EC_MAXEEPBUF];
-            /** bitmap for filled cache buffer bytes */
-            uint32       esimap[EC_MAXEEPBITMAP];
-            /** current slave for EEPROM cache buffer */
-            ec_eringt    ec_elist;
-            ec_idxstackT ec_idxstack;
-
-            /** SyncManager Communication Type struct to store data of one slave */
-            ec_SMcommtypet  ec_SMcommtype;
-            /** PDO assign struct to store data of one slave */
-            ec_PDOassignt   ec_PDOassign;
-            /** PDO description struct to store data of one slave */
-            ec_PDOdesct     ec_PDOdesc;
-
-            /** buffer for EEPROM SM data */
-            ec_eepromSMt ec_SM;
-            /** buffer for EEPROM FMMU data */
-            ec_eepromFMMUt ec_FMMU;
-
-            /** Global variable TRUE if error available in error stack */
-            boolean    EcatError = FALSE;
-
-            int64         ec_DCtime;
-
-            ecx_portt      ecx_port;
-            context->port = &ecx_port;
-            context->slavelist = &ec_slave[0];
-            context->slavecount = &ec_slavecount;
+            if (maxslave == 0) {
+                throw std::invalid_argument("maxslave cannot be zero.");
+            }
+            if (maxgroup == 0) {
+                throw std::invalid_argument("maxgroup cannot be zero.");
+            }
+            context->port = new ecx_portt();
+            context->slavelist = new ec_slavet[maxslave];
+            context->slavecount = new int;
             context->maxslave = maxslave;
-            context->grouplist = &ec_groups[0];
+            context->grouplist = new ec_groupt[maxgroup];
             context->maxgroup = maxgroup;
-            context->esibuf = &esibuf[0];
-            context->esimap = &esimap[0];
+            context->esibuf = new uint8_t[EC_MAXEEPBUF];
+            context->esimap = new uint32_t[EC_MAXEEPBITMAP];
             context->esislave = 0;
-            context->elist = &ec_elist;
-            context->idxstack = &ec_idxstack;
-            context->ecaterror = &EcatError;
-            context->DCtime = &ec_DCtime;
-            context->SMcommtype = &ec_SMcommtype;
-            context->PDOassign = &ec_PDOassign;
-            context->PDOdesc = &ec_PDOdesc;
-            context->eepSM = &ec_SM;
-            context->eepFMMU = &ec_FMMU;
+            context->elist = new ec_eringt;
+            context->idxstack = new ec_idxstackT;
+            context->ecaterror = new boolean(false);
+            context->DCtime = new int64_t;
+            context->SMcommtype = new ec_SMcommtypet;
+            context->PDOassign = new ec_PDOassignt;
+            context->PDOdesc = new ec_PDOdesct;
+            context->eepSM = new ec_eepromSMt;
+            context->eepFMMU = new ec_eepromFMMUt;
             context->FOEhook = nullptr;
             context->EOEhook = nullptr;
             context->manualstatechange = 0;
