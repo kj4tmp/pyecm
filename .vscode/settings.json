@@ -63,4 +63,6 @@
         "variant": "cpp"
     },
     "editor.formatOnSave": true,
+    "python.analysis.typeCheckingMode": "standard",
+    "editor.defaultFormatter": "ms-python.black-formatter"
 }

@@ -18,14 +18,14 @@ forceByteAlignment: bool = False
 
 
 def simpletest(ifname: str):
-    context = pyecm.soem.ecx_contextt()
+    context = pyecm.soem.ecx_contextt(maxslave=512, maxgroup=2)
 
-    if pyecm.soem.ecx_init(context, ifname) > 0:
-        raise RuntimeError(
-            "Error occured on ecx_init. Are you running with admin privledges?"
-        )
-    else:
-        print("ecx_init succeeded.")
+    ifname = "enx00e04c681629"
+    init_result = pyecm.soem.ecx_init(context, ifname)
+    assert (
+        init_result > 0
+    ), f"Error occured on ecx_init ({init_result}). Are you running with admin privledges?"
+    print("ecx_init succeeded.")
 
     num_sub_devices_found = pyecm.soem.ecx_config_init(context, False)
     if num_sub_devices_found == 0:
@@ -35,24 +35,49 @@ def simpletest(ifname: str):
 
     # do config map
 
+    iomap = pyecm.soem.IOMapVector(bytearray(256))
+    reqd_iomap_size = pyecm.soem.ecx_config_map_group(context=context, iomap=iomap, group=0)
+    assert reqd_iomap_size < len(
+        iomap
+    ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {len(iomap)}"
+    print("Successfully configured iomap.")
+
     # config dc
-    if pyecm.soem.ecx_configdc(context):
+    dc_subdevice_found = pyecm.soem.ecx_configdc(context)
+    if dc_subdevice_found:
         print("Distrubuted clocks configured.")
     else:
         print("No distributed clock enabled subdevices found.")
 
-    pass
+    res = pyecm.soem.ecx_send_processdata(context=context)
+    assert res > 0, f"error on send process data({res})"
+
+    print("sent first process data")
+
+    wkc = pyecm.soem.ecx_receive_processdata(context=context, timeout=5000)
+    assert wkc != -1, f"invalid wkc on first receive process data. wkc: {wkc}"
+    print(f"received first process data. wkc: {wkc}")
 
 
-def ecatcheck():
+def cyclic_task():
+    return
+
+    while True:
+        pyecm.soem.osal_usleep(10000)  # run 10 ms cycle
+
+        try:
+            pass
+
+        except Exception as e:
+            print("exception in cyclic task")
+            print(e)
+
     pass
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pyecm simple test")
-    parser.add_argument(
-        "--ifname", type=str, help="Interface name (e.g., eth0)", required=False
-    )
+    parser.add_argument("--ifname", type=str, help="Interface name (e.g., eth0)", required=False)
     args = parser.parse_args()
 
     if not args.ifname:
@@ -64,6 +89,11 @@ if __name__ == "__main__":
             print(f"desc: {adapter.desc}")
         sys.exit(1)
 
-    ecatcheck_thread = threading.Thread(target=ecatcheck)
-    ecatcheck_thread.start()
+    adapters = [adapter.name for adapter in pyecm.soem.ec_find_adapters()]
+    assert (
+        args.ifname.encode() in adapters
+    ), f"ifname: {args.ifname.encode()} not in available adapters: {adapters}"
+
+    cyclic_thread = threading.Thread(target=cyclic_task, daemon=True)
+    cyclic_thread.start()
     simpletest(args.ifname)

@@ -1,3 +1,6 @@
 FROM python
+
+RUN apt update && apt install -y net-tools
+
 COPY ./requirements.dev requirements.dev
 RUN pip install -r requirements.dev

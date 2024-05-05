@@ -304,17 +304,29 @@ NB_MODULE(soem_ext, m)
     m.def("ecx_readstate", &ecx_readstate);
     m.def("ecx_writestate", &ecx_writestate);
 
+    m.def("ecx_send_overlap_processdata_group", &ecx_send_overlap_processdata_group, "context"_a, "group"_a);
+    m.def("ecx_receive_processdata_group", &ecx_receive_processdata_group, "context"_a, "group"_a, "timeout"_a);
+    m.def("ecx_send_processdata", &ecx_send_processdata, "context"_a);
+    m.def("ecx_send_overlap_processdata", &ecx_send_overlap_processdata, "context"_a);
+    m.def("ecx_receive_processdata", &ecx_receive_processdata, "context"_a, "timeout"_a);
+    m.def("ecx_send_processdata_group", &ecx_send_processdata_group, "context"_a, "group"_a);
+
+
     // ethercatconfig.h
     nb::bind_vector<IOMapVector>(m, "IOMapVector");
-    m.def("ecx_init", &ecx_init);
-    m.def("ecx_config_init", &ecx_config_init);
-    m.def("ecx_config_map_group", [](ecx_contextt *context, IOMapVector IOmap, uint8 group)
-          { return ecx_config_overlap_map_group(context, IOmap.data(), group); });
-    m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group);
-    m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned);
-    m.def("ecx_recover_slave", &ecx_recover_slave);
-    m.def("ecx_reconfig_slave", &ecx_reconfig_slave);
+    m.def("ecx_init", &ecx_init, "context"_a, "ifname"_a);
+    m.def("ecx_config_init", &ecx_config_init, "context"_a, "usetable"_a);
+    m.def(
+        "ecx_config_map_group", [](ecx_contextt *context, IOMapVector IOmap, uint8 group)
+        { return ecx_config_overlap_map_group(context, IOmap.data(), group); },
+        "context"_a, "iomap"_a, "group"_a);
+    m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group, "context"_a, "iomap"_a, "group"_a);
+    m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned, "context"_a, "iomap"_a, "group"_a);
+    m.def("ecx_recover_slave", &ecx_recover_slave, "context"_a, "slave"_a, "timeout"_a);
+    m.def("ecx_reconfig_slave", &ecx_reconfig_slave, "context"_a, "slave"_a, "timeout"_a);
 
     // ethercatdc.h
-    m.def("ecx_configdc", &ecx_configdc);
+    m.def("ecx_configdc", &ecx_configdc, "context"_a);
+
+    m.def("osal_usleep", &osal_usleep, "usec"_a);
 }
