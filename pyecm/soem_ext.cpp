@@ -1,10 +1,15 @@
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/bind_vector.h>
 #include <nanobind/stl/vector.h>
 #include <ethercat.h>
 #include <memory>
 namespace nb = nanobind;
 
 using namespace nb::literals;
+
+using IOMapVector = std::vector<uint8_t>;
+
+NB_MAKE_OPAQUE(IOMapVector)
 
 NB_MODULE(soem_ext, m)
 {
@@ -153,7 +158,23 @@ NB_MODULE(soem_ext, m)
         .def_ro("name", &ec_slavet::name);
 
     // TODO: fill in
-    nb::class_<ec_groupt>(m, "ec_groupt");
+    nb::class_<ec_groupt>(m, "ec_groupt")
+        .def_rw("logstartaddr", &ec_groupt::logstartaddr)
+        .def_rw("Obytes", &ec_groupt::Obytes)
+        .def_rw("outputs", &ec_groupt::outputs)
+        .def_rw("Ibytes", &ec_groupt::Ibytes)
+        .def_rw("inputs", &ec_groupt::inputs)
+        .def_rw("hasdc", &ec_groupt::hasdc)
+        .def_rw("DCnext", &ec_groupt::DCnext)
+        .def_rw("Ebuscurrent", &ec_groupt::Ebuscurrent)
+        .def_rw("blockLRW", &ec_groupt::blockLRW)
+        .def_rw("nsegments", &ec_groupt::nsegments)
+        .def_rw("Isegment", &ec_groupt::Isegment)
+        .def_rw("Ioffset", &ec_groupt::Ioffset)
+        .def_rw("outputsWKC", &ec_groupt::outputsWKC)
+        .def_rw("inputsWKC", &ec_groupt::inputsWKC)
+        .def_rw("docheckstate", &ec_groupt::docheckstate);
+    //.def_rw("IOsegment", &ec_groupt::IOsegment);
 
     // TODO: fill in
     nb::class_<ec_eringt>(m, "ec_eringt");
@@ -170,11 +191,25 @@ NB_MODULE(soem_ext, m)
     // TODO: fill in
     nb::class_<ec_PDOdesct>(m, "ec_PDOdesct");
 
-    // TODO: fill in
-    nb::class_<ec_eepromSMt>(m, "ec_eepromSMt");
+    nb::class_<ec_eepromSMt>(m, "ec_eepromSMt")
+        .def(nb::init<>())
+        .def_rw("Startpos", &ec_eepromSMt::Startpos)
+        .def_rw("nSM", &ec_eepromSMt::nSM)
+        .def_rw("PhStart", &ec_eepromSMt::PhStart)
+        .def_rw("Plength", &ec_eepromSMt::Plength)
+        .def_rw("Creg", &ec_eepromSMt::Creg)
+        .def_rw("Sreg", &ec_eepromSMt::Sreg)
+        .def_rw("Activate", &ec_eepromSMt::Activate)
+        .def_rw("PDIctrl", &ec_eepromSMt::PDIctrl);
 
-    // TODO: fill in
-    nb::class_<ec_eepromFMMUt>(m, "ec_eepromFMMUt");
+    nb::class_<ec_eepromFMMUt>(m, "ec_eepromFMMUt")
+        .def(nb::init<>())
+        .def_rw("Startpos", &ec_eepromFMMUt::Startpos)
+        .def_rw("nFMMU", &ec_eepromFMMUt::nFMMU)
+        .def_rw("FMMU0", &ec_eepromFMMUt::FMMU0)
+        .def_rw("FMMU1", &ec_eepromFMMUt::FMMU1)
+        .def_rw("FMMU2", &ec_eepromFMMUt::FMMU2)
+        .def_rw("FMMU3", &ec_eepromFMMUt::FMMU3);
 
     // TODO: fill in
     nb::class_<ecx_contextt>(m, "ecx_contextt")
@@ -270,9 +305,10 @@ NB_MODULE(soem_ext, m)
     m.def("ecx_writestate", &ecx_writestate);
 
     // ethercatconfig.h
+    nb::bind_vector<IOMapVector>(m, "IOMapVector");
     m.def("ecx_init", &ecx_init);
     m.def("ecx_config_init", &ecx_config_init);
-    m.def("ecx_config_map_group", [](ecx_contextt *context, std::vector<uint8_t> IOmap, uint8 group)
+    m.def("ecx_config_map_group", [](ecx_contextt *context, IOMapVector IOmap, uint8 group)
           { return ecx_config_overlap_map_group(context, IOmap.data(), group); });
     m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group);
     m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned);

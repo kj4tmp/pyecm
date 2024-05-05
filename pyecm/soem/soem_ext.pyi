@@ -1,7 +1,79 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Iterator, Sequence
 import enum
 import types
+from typing import overload
 
+
+class IOMapVector:
+    @overload
+    def __init__(self) -> None:
+        """Default constructor"""
+
+    @overload
+    def __init__(self, arg: IOMapVector) -> None:
+        """Copy constructor"""
+
+    @overload
+    def __init__(self, arg: Iterable[int], /) -> None:
+        """Construct from an iterable object"""
+
+    def __len__(self) -> int: ...
+
+    def __bool__(self) -> bool:
+        """Check whether the vector is nonempty"""
+
+    def __repr__(self) -> str: ...
+
+    def __iter__(self) -> Iterator[int]: ...
+
+    @overload
+    def __getitem__(self, arg: int, /) -> int: ...
+
+    @overload
+    def __getitem__(self, arg: slice, /) -> IOMapVector: ...
+
+    def clear(self) -> None:
+        """Remove all items from list."""
+
+    def append(self, arg: int, /) -> None:
+        """Append `arg` to the end of the list."""
+
+    def insert(self, arg0: int, arg1: int, /) -> None:
+        """Insert object `arg1` before index `arg0`."""
+
+    def pop(self, index: int = -1) -> int:
+        """Remove and return item at `index` (default last)."""
+
+    def extend(self, arg: IOMapVector, /) -> None:
+        """Extend `self` by appending elements from `arg`."""
+
+    @overload
+    def __setitem__(self, arg0: int, arg1: int, /) -> None: ...
+
+    @overload
+    def __setitem__(self, arg0: slice, arg1: IOMapVector, /) -> None: ...
+
+    @overload
+    def __delitem__(self, arg: int, /) -> None: ...
+
+    @overload
+    def __delitem__(self, arg: slice, /) -> None: ...
+
+    def __eq__(self, arg: IOMapVector, /) -> bool: ...
+
+    def __ne__(self, arg: IOMapVector, /) -> bool: ...
+
+    @overload
+    def __contains__(self, arg: int, /) -> bool: ...
+
+    @overload
+    def __contains__(self, arg: object, /) -> bool: ...
+
+    def count(self, arg: int, /) -> int:
+        """Return number of occurrences of `arg`."""
+
+    def remove(self, arg: int, /) -> None:
+        """Remove first occurrence of `arg`."""
 
 def add(a: int, b: int) -> int: ...
 
@@ -22,10 +94,94 @@ class ec_adaptert:
     def desc(self) -> bytes: ...
 
 class ec_eepromFMMUt:
-    pass
+    def __init__(self) -> None: ...
+
+    @property
+    def Startpos(self) -> int: ...
+
+    @Startpos.setter
+    def Startpos(self, arg: int, /) -> None: ...
+
+    @property
+    def nFMMU(self) -> int: ...
+
+    @nFMMU.setter
+    def nFMMU(self, arg: int, /) -> None: ...
+
+    @property
+    def FMMU0(self) -> int: ...
+
+    @FMMU0.setter
+    def FMMU0(self, arg: int, /) -> None: ...
+
+    @property
+    def FMMU1(self) -> int: ...
+
+    @FMMU1.setter
+    def FMMU1(self, arg: int, /) -> None: ...
+
+    @property
+    def FMMU2(self) -> int: ...
+
+    @FMMU2.setter
+    def FMMU2(self, arg: int, /) -> None: ...
+
+    @property
+    def FMMU3(self) -> int: ...
+
+    @FMMU3.setter
+    def FMMU3(self, arg: int, /) -> None: ...
 
 class ec_eepromSMt:
-    pass
+    def __init__(self) -> None: ...
+
+    @property
+    def Startpos(self) -> int: ...
+
+    @Startpos.setter
+    def Startpos(self, arg: int, /) -> None: ...
+
+    @property
+    def nSM(self) -> int: ...
+
+    @nSM.setter
+    def nSM(self, arg: int, /) -> None: ...
+
+    @property
+    def PhStart(self) -> int: ...
+
+    @PhStart.setter
+    def PhStart(self, arg: int, /) -> None: ...
+
+    @property
+    def Plength(self) -> int: ...
+
+    @Plength.setter
+    def Plength(self, arg: int, /) -> None: ...
+
+    @property
+    def Creg(self) -> int: ...
+
+    @Creg.setter
+    def Creg(self, arg: int, /) -> None: ...
+
+    @property
+    def Sreg(self) -> int: ...
+
+    @Sreg.setter
+    def Sreg(self, arg: int, /) -> None: ...
+
+    @property
+    def Activate(self) -> int: ...
+
+    @Activate.setter
+    def Activate(self, arg: int, /) -> None: ...
+
+    @property
+    def PDIctrl(self) -> int: ...
+
+    @PDIctrl.setter
+    def PDIctrl(self, arg: int, /) -> None: ...
 
 class ec_eringt:
     pass
@@ -129,7 +285,95 @@ class ec_errort:
 def ec_find_adapters() -> list[ec_adaptert]: ...
 
 class ec_groupt:
-    pass
+    @property
+    def logstartaddr(self) -> int: ...
+
+    @logstartaddr.setter
+    def logstartaddr(self, arg: int, /) -> None: ...
+
+    @property
+    def Obytes(self) -> int: ...
+
+    @Obytes.setter
+    def Obytes(self, arg: int, /) -> None: ...
+
+    @property
+    def outputs(self) -> int: ...
+
+    @outputs.setter
+    def outputs(self, arg: int, /) -> None: ...
+
+    @property
+    def Ibytes(self) -> int: ...
+
+    @Ibytes.setter
+    def Ibytes(self, arg: int, /) -> None: ...
+
+    @property
+    def inputs(self) -> int: ...
+
+    @inputs.setter
+    def inputs(self, arg: int, /) -> None: ...
+
+    @property
+    def hasdc(self) -> int: ...
+
+    @hasdc.setter
+    def hasdc(self, arg: int, /) -> None: ...
+
+    @property
+    def DCnext(self) -> int: ...
+
+    @DCnext.setter
+    def DCnext(self, arg: int, /) -> None: ...
+
+    @property
+    def Ebuscurrent(self) -> int: ...
+
+    @Ebuscurrent.setter
+    def Ebuscurrent(self, arg: int, /) -> None: ...
+
+    @property
+    def blockLRW(self) -> int: ...
+
+    @blockLRW.setter
+    def blockLRW(self, arg: int, /) -> None: ...
+
+    @property
+    def nsegments(self) -> int: ...
+
+    @nsegments.setter
+    def nsegments(self, arg: int, /) -> None: ...
+
+    @property
+    def Isegment(self) -> int: ...
+
+    @Isegment.setter
+    def Isegment(self, arg: int, /) -> None: ...
+
+    @property
+    def Ioffset(self) -> int: ...
+
+    @Ioffset.setter
+    def Ioffset(self, arg: int, /) -> None: ...
+
+    @property
+    def outputsWKC(self) -> int: ...
+
+    @outputsWKC.setter
+    def outputsWKC(self, arg: int, /) -> None: ...
+
+    @property
+    def inputsWKC(self) -> int: ...
+
+    @inputsWKC.setter
+    def inputsWKC(self, arg: int, /) -> None: ...
+
+    @property
+    def docheckstate(self) -> int: ...
+
+    @docheckstate.setter
+    def docheckstate(self, arg: int, /) -> None: ...
 
 class ec_idxstackT:
     pass
@@ -520,7 +764,7 @@ def ecx_close(arg: ecx_contextt, /) -> None: ...
 
 def ecx_config_init(arg0: ecx_contextt, arg1: int, /) -> int: ...
 
-def ecx_config_map_group(arg0: ecx_contextt, arg1: Sequence[int], arg2: int, /) -> int: ...
+def ecx_config_map_group(arg0: ecx_contextt, arg1: IOMapVector, arg2: int, /) -> int: ...
 
 def ecx_config_map_group_aligned(arg0: ecx_contextt, arg1: types.CapsuleType, arg2: int, /) -> int: ...
 
