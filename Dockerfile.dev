@@ -1,4 +1,4 @@
-FROM python
+FROM mcr.microsoft.com/devcontainers/python:3
 
 RUN apt update && apt install -y net-tools
 
