@@ -1,15 +1,148 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/bind_vector.h>
-#include <nanobind/stl/vector.h>
 #include <ethercat.h>
-#include <memory>
+#include <nanobind/ndarray.h>
 namespace nb = nanobind;
 
 using namespace nb::literals;
 
 using IOMapVector = std::vector<uint8_t>;
+using ECSlaveTVector = std::vector<ec_slavet>;
+using ECGroupTVector = std::vector<ec_groupt>;
 
-NB_MAKE_OPAQUE(IOMapVector)
+class SOEM_wrapper {
+    public:
+    // ecx_contextt
+    ecx_contextt context;
+    ecx_portt port;
+    ECSlaveTVector slavelist;
+    int slavecount;
+    uint16_t maxslave;
+    ECGroupTVector grouplist;
+    uint8_t maxgroup;
+    uint8_t esibuf [EC_MAXEEPBUF]; 
+    uint32_t esimap [EC_MAXEEPBITMAP];
+    ec_eringt elist;
+    ec_idxstackT idxstack;
+    boolean ecaterror;
+    int64_t DCtime;
+    ec_SMcommtypet SMcommtype;
+    ec_PDOassignt PDOassign;
+    ec_PDOdesct PDOdesc;
+    ec_eepromSMt eepSM;
+    ec_eepromFMMUt eepFMMU;
+
+    //iomap
+    IOMapVector iomap;
+
+    SOEM_wrapper(uint16_t maxslave_, uint8_t maxgroup_, size_t iomap_size_bytes){
+        if (maxslave_ == 0) {
+                throw std::invalid_argument("maxslave cannot be zero.");
+            }
+        if (maxgroup_ == 0) {
+            throw std::invalid_argument("maxgroup cannot be zero.");
+        }
+        if (iomap_size_bytes == 0) {
+            throw std::invalid_argument("iomap_size_bytes cannot be zero.");
+        }
+
+        slavelist.resize(maxslave_);
+        maxslave = maxslave_;
+        grouplist.resize(maxgroup_);
+        maxgroup = maxgroup_;
+        iomap.resize(iomap_size_bytes);
+
+        context.port = &port;
+        context.slavelist = slavelist.data();
+        context.slavecount = &slavecount;
+        context.maxslave = maxslave;
+        context.grouplist = grouplist.data();
+        context.maxgroup = maxgroup;
+        context.esibuf = &esibuf[0];
+        context.esimap = &esimap[0];
+        context.esislave = 0;
+        context.elist = &elist;
+        context.idxstack = &idxstack;
+        context.ecaterror = &ecaterror;
+        context.DCtime = &DCtime;
+        context.SMcommtype = &SMcommtype;
+        context.PDOassign = &PDOassign;
+        context.PDOdesc = &PDOdesc;
+        context.eepSM = &eepSM;
+        context.eepFMMU = &eepFMMU;
+        context.FOEhook = nullptr;
+        context.EOEhook = nullptr;
+        context.manualstatechange = 0;
+        context.userdata = nullptr;
+    }
+    auto close(){
+        return ecx_close(&this->context);
+    }
+    auto iserror(){
+        return ecx_iserror(&this->context);
+    }
+    auto init_redundant(ecx_redportt *redport, const char *ifname, const char *if2name){
+        return ecx_init_redundant(&this->context, redport, ifname, (char *)if2name);
+    }
+    auto readstate(){
+        return ecx_readstate(&this->context);
+    }
+    auto writestate(uint16_t slave){
+        return ecx_writestate(&this->context, slave);
+    }
+    auto statecheck(uint16 slave, uint16 reqstate, int timeout_us){
+        return ecx_statecheck(&this->context, slave, reqstate, timeout_us);
+    }
+    auto send_overlap_processdata_group(uint8 group){
+        return ecx_send_overlap_processdata_group(&this->context, group);
+    }
+    auto receive_processdata_group(uint8 group, int timeout_us){
+        return ecx_receive_processdata_group(&this->context, group, timeout_us);
+    }
+    auto send_processdata(){
+        return ecx_send_processdata(&this->context);
+    }
+    auto send_overlap_processdata(){
+        return ecx_send_overlap_processdata(&this->context);
+    }
+    auto receive_processdata(int timeout_us){
+        return ecx_receive_processdata(&this->context, timeout_us);
+    }
+    auto send_processdata_group(uint8 group){
+        return ecx_send_processdata_group(&this->context, group);
+    }
+    auto init(const char * ifname){
+        return ecx_init(&this->context, ifname);
+    }
+    auto config_init(uint8 usetable){
+        return ecx_config_init(&this->context, usetable);
+    }
+    auto config_map_group( uint8 group){
+        return ecx_config_map_group(&this->context, iomap.data(), group);
+    }
+    auto config_map_group_aligned( uint8 group){
+        return ecx_config_map_group_aligned(&this->context, iomap.data(), group);
+    }
+    auto config_overlap_map_group( uint8 group){
+        return ecx_config_overlap_map_group(&this->context, iomap.data(), group);
+    }
+
+    auto recover_slave(uint16 slave, int timeout_us){
+        return ecx_recover_slave(&this->context, slave, timeout_us);
+    }
+    auto reconfig_slave(uint16 slave, int timeout_us){
+        return ecx_reconfig_slave(&this->context, slave, timeout_us);
+    }
+    auto configdc(){
+        return ecx_configdc(&this->context);
+    }
+    auto dcsync0(uint16 slave, boolean act, uint32 CyclTime_ns, int32 CyclShift_ns){
+        return ecx_dcsync0(&this->context, slave, act, CyclTime_ns, CyclShift_ns);
+    }
+    auto dcsync01(uint16 slave, boolean act, uint32 CyclTime0_ns, uint32 CyclTime1_ns, int32 CyclShift_ns){
+        return ecx_dcsync01(&this->context,slave, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
+    }   
+};
 
 NB_MODULE(soem_ext, m)
 {
@@ -92,6 +225,7 @@ NB_MODULE(soem_ext, m)
 
     // TODO: fill in
     nb::class_<ec_slavet>(m, "ec_slavet")
+        .def(nb::init<>())
         .def_rw("state", &ec_slavet::state)
         .def_rw("ALstatuscode", &ec_slavet::ALstatuscode)
         .def_rw("configadr", &ec_slavet::configadr)
@@ -212,121 +346,54 @@ NB_MODULE(soem_ext, m)
         .def_rw("FMMU3", &ec_eepromFMMUt::FMMU3);
 
     // TODO: fill in
-    nb::class_<ecx_contextt>(m, "ecx_contextt")
-        //.def(nb::init<>())
-        .def(
-            "__init__", [](ecx_contextt *context, uint16_t maxslave, uint8_t maxgroup)
-            {
-            if (maxslave == 0) {
-                throw std::invalid_argument("maxslave cannot be zero.");
-            }
-            if (maxgroup == 0) {
-                throw std::invalid_argument("maxgroup cannot be zero.");
-            }
-            context->port = new ecx_portt();
-            context->slavelist = new ec_slavet[maxslave];
-            context->slavecount = new int;
-            context->maxslave = maxslave;
-            context->grouplist = new ec_groupt[maxgroup];
-            context->maxgroup = maxgroup;
-            context->esibuf = new uint8_t[EC_MAXEEPBUF];
-            context->esimap = new uint32_t[EC_MAXEEPBITMAP];
-            context->esislave = 0;
-            context->elist = new ec_eringt;
-            context->idxstack = new ec_idxstackT;
-            context->ecaterror = new boolean(false);
-            context->DCtime = new int64_t;
-            context->SMcommtype = new ec_SMcommtypet;
-            context->PDOassign = new ec_PDOassignt;
-            context->PDOdesc = new ec_PDOdesct;
-            context->eepSM = new ec_eepromSMt;
-            context->eepFMMU = new ec_eepromFMMUt;
-            context->FOEhook = nullptr;
-            context->EOEhook = nullptr;
-            context->manualstatechange = 0;
-            context->userdata = nullptr; },
-            "maxslave"_a, "maxgroup"_a)
-        .def_rw("port", &ecx_contextt::port)
-        .def_prop_ro("slavelist", [](ecx_contextt *context) -> nb::typed<nb::list, ec_slavet>
-                     {
-            nb::typed<nb::list, ec_slavet> subdevices_list;
-            // first subdevice in slavelist is reserved for the maindevice.
-            for (int i = 0; i < *(context->slavecount) + 1; i++){
-                subdevices_list.append(context->slavelist[i]);
-            }
-            return subdevices_list; })
-        .def_rw("slavecount", &ecx_contextt::slavecount)
-        .def_rw("maxslave", &ecx_contextt::maxslave)
-        .def_prop_rw(
-            "grouplist", [](ecx_contextt &context) -> nb::typed<nb::list, ec_groupt>
-            {
-            nb::typed<nb::list, ec_groupt> grouplist;
-            for (int i = 0; i < context.maxgroup; i++){
-                grouplist.append(context.grouplist[i]);
-            }
-            return grouplist; },
-            [](ecx_contextt &context, std::vector<ec_groupt> grouplist)
-            {
-                if (grouplist.size() > context.maxgroup)
-                {
-                    throw std::invalid_argument("attempted to set grouplist having length larger than maxgroup");
-                }
-                for (std::size_t i = 0; i < grouplist.size(); i++)
-                {
-                    context.grouplist[i] = grouplist[i];
-                }
-            })
-        .def_rw("maxgroup", &ecx_contextt::maxgroup)
-        .def_rw("esibuf", &ecx_contextt::esibuf)
-        .def_rw("esimap", &ecx_contextt::esimap)
-        .def_rw("esislave", &ecx_contextt::esislave)
-        .def_rw("elist", &ecx_contextt::elist)
-        .def_rw("idxstack", &ecx_contextt::idxstack)
-        .def_rw("ecaterror", &ecx_contextt::ecaterror)
-        .def_rw("DCtime", &ecx_contextt::DCtime)
-        .def_rw("SMcommtype", &ecx_contextt::SMcommtype)
-        .def_rw("PDOassign", &ecx_contextt::PDOassign)
-        .def_rw("PDOdesc", &ecx_contextt::PDOdesc)
-        .def_rw("eepSM", &ecx_contextt::eepSM)
-        .def_rw("eepFMMU", &ecx_contextt::eepFMMU)
-        //.def_rw("FOEhook", &ecx_contextt::FOEhook);
-        //.def_rw("EOEhook", &ecx_contextt::EOEhook)
-        .def_rw("manualstatechange", &ecx_contextt::manualstatechange)
-        .def_rw("userdata", &ecx_contextt::userdata);
-
-    m.def("ecx_close", &ecx_close);
-    m.def("ecx_iserror", &ecx_iserror);
-    m.def("ecx_init_redundant", [](ecx_contextt *context, ecx_redportt *redport, const char *ifname, const char *if2name)
-          {
-        // if2name is incorrectly typed as char * instead of const char *
-        // which causes nanobind compile error
-        return ecx_init_redundant(context, redport, ifname, (char *)if2name); });
-    m.def("ecx_readstate", &ecx_readstate);
-    m.def("ecx_writestate", &ecx_writestate);
-
-    m.def("ecx_send_overlap_processdata_group", &ecx_send_overlap_processdata_group, "context"_a, "group"_a);
-    m.def("ecx_receive_processdata_group", &ecx_receive_processdata_group, "context"_a, "group"_a, "timeout"_a);
-    m.def("ecx_send_processdata", &ecx_send_processdata, "context"_a);
-    m.def("ecx_send_overlap_processdata", &ecx_send_overlap_processdata, "context"_a);
-    m.def("ecx_receive_processdata", &ecx_receive_processdata, "context"_a, "timeout"_a);
-    m.def("ecx_send_processdata_group", &ecx_send_processdata_group, "context"_a, "group"_a);
-
-
-    // ethercatconfig.h
+    nb::bind_vector<ECSlaveTVector>(m, "ECSlaveTVector");
     nb::bind_vector<IOMapVector>(m, "IOMapVector");
-    m.def("ecx_init", &ecx_init, "context"_a, "ifname"_a);
-    m.def("ecx_config_init", &ecx_config_init, "context"_a, "usetable"_a);
-    m.def(
-        "ecx_config_map_group", [](ecx_contextt *context, IOMapVector IOmap, uint8 group)
-        { return ecx_config_overlap_map_group(context, IOmap.data(), group); },
-        "context"_a, "iomap"_a, "group"_a);
-    m.def("ecx_config_overlap_map_group", &ecx_config_overlap_map_group, "context"_a, "iomap"_a, "group"_a);
-    m.def("ecx_config_map_group_aligned", &ecx_config_map_group_aligned, "context"_a, "iomap"_a, "group"_a);
-    m.def("ecx_recover_slave", &ecx_recover_slave, "context"_a, "slave"_a, "timeout"_a);
-    m.def("ecx_reconfig_slave", &ecx_reconfig_slave, "context"_a, "slave"_a, "timeout"_a);
-
-    // ethercatdc.h
-    m.def("ecx_configdc", &ecx_configdc, "context"_a);
-
+    nb::bind_vector<ECGroupTVector>(m, "ECGroupTVector");
+    nb::class_<SOEM_wrapper>(m, "SOEM")
+        .def("__init__", [](SOEM_wrapper *context_wrapper, uint16_t maxslave, uint8_t maxgroup, size_t iomap_size_bytes) {
+            new (context_wrapper) SOEM_wrapper(maxslave, maxgroup, iomap_size_bytes);
+        }, "maxslave"_a, "maxgroup"_a, "iomap_size_bytes"_a)
+        .def_rw("port", &SOEM_wrapper::port)
+        .def_rw("slavelist", &SOEM_wrapper::slavelist)
+        .def_ro("slavecount", &SOEM_wrapper::slavecount)
+        .def_ro("maxslave", &SOEM_wrapper::maxslave)
+        .def_rw("grouplist", &SOEM_wrapper::grouplist)
+        .def_rw("maxgroup", &SOEM_wrapper::maxgroup)
+        .def_rw("elist", &SOEM_wrapper::elist)
+        .def_rw("idxstack", &SOEM_wrapper::idxstack)
+        .def_rw("ecaterror", &SOEM_wrapper::ecaterror)
+        .def_rw("DCtime", &SOEM_wrapper::DCtime)
+        .def_rw("SMcommtype", &SOEM_wrapper::SMcommtype)
+        .def_rw("PDOassign", &SOEM_wrapper::PDOassign)
+        .def_rw("PDOdesc", &SOEM_wrapper::PDOdesc)
+        .def_rw("eepSM", &SOEM_wrapper::eepSM)
+        .def_rw("eepFMMU", &SOEM_wrapper::eepFMMU)
+        .def_rw("iomap", &SOEM_wrapper::iomap)
+        .def("close", &SOEM_wrapper::close)
+        .def("iserror", &SOEM_wrapper::iserror)
+        .def("init_redundant", &SOEM_wrapper::init_redundant)
+        .def("readstate", &SOEM_wrapper::readstate)
+        .def("writestate", &SOEM_wrapper::writestate, "slave"_a)
+        .def("statecheck", &SOEM_wrapper::statecheck, "slave"_a, "reqstate"_a, "timeout_us"_a)
+        .def("send_overlap_processdata_group", &SOEM_wrapper::send_overlap_processdata_group)
+        .def("send_overlap_processdata_group", &SOEM_wrapper::send_overlap_processdata_group, "group"_a)
+        .def("receive_processdata_group", &SOEM_wrapper::receive_processdata_group, "group"_a, "timeout_us"_a)
+        .def("send_processdata", &SOEM_wrapper::send_processdata)
+        .def("send_overlap_processdata", &SOEM_wrapper::send_overlap_processdata)
+        .def("receive_processdata", &SOEM_wrapper::receive_processdata, "timeout_us"_a)
+        .def("send_processdata_group", &SOEM_wrapper::send_processdata_group, "group"_a)
+        .def("init", &SOEM_wrapper::init, "ifname"_a)
+        .def("config_init", &SOEM_wrapper::config_init, "usetable"_a)
+        .def("config_map_group", &SOEM_wrapper::config_map_group, "group"_a)
+        .def("config_overlap_map_group", &SOEM_wrapper::config_overlap_map_group, "group"_a)
+        .def("config_map_group_aligned", &SOEM_wrapper::config_map_group_aligned, "group"_a)
+        .def("recover_slave", &SOEM_wrapper::recover_slave, "slave"_a, "timeout_us"_a)
+        .def("reconfig_slave", &SOEM_wrapper::reconfig_slave, "slave"_a, "timeout_us"_a)
+        // ethercatdc.h
+        .def("configdc", &SOEM_wrapper::configdc)
+        .def("dcsync0", &SOEM_wrapper::dcsync0, "slave"_a, "act"_a, "CyclTime_ns"_a, "CycleShift_ns"_a)
+        .def("dcsync01", &SOEM_wrapper::dcsync01, "slave"_a, "act"_a, "CyclTime0_ns"_a, "CyclTime1_ns"_a, "CyclShift_ns"_a);
+    
+    // osal.h
     m.def("osal_usleep", &osal_usleep, "usec"_a);
 }

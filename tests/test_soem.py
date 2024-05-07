@@ -3,19 +3,12 @@ import logging
 import pytest
 
 import pyecm
-from pyecm.soem import (
-    ec_eepromFMMUt,
-    ec_eepromSMt,
-    ecx_config_init,
-    ecx_config_map_group,
-    ecx_contextt,
-    ecx_init,
-)
+from pyecm.soem import SOEM, ec_eepromFMMUt, ec_eepromSMt, ec_slavet
 
 _logger = logging.getLogger(__name__)
 
 
-def log_subdevices(subdevices: list[pyecm.soem.ec_slavet]):
+def log_subdevices(subdevices: pyecm.soem.ECSlaveTVector):
     for i, subdevice in enumerate(subdevices):
         if i == 0:
             _logger.info("MainDevice:")
@@ -89,16 +82,16 @@ def log_subdevices(subdevices: list[pyecm.soem.ec_slavet]):
     # _logger.info(f"{subdevice.name=}")
 
 
-def log_context(ctx: pyecm.soem.ecx_contextt):
+def log_context(ctx: pyecm.soem.SOEM):
     _logger.info(f"{ctx.port=}")
     _logger.info(f"{ctx.slavelist=}")
     _logger.info(f"{ctx.slavecount=}")
     _logger.info(f"{ctx.maxslave=}")
     _logger.info(f"{ctx.grouplist=}")
     _logger.info(f"{ctx.maxgroup=}")
-    _logger.info(f"{ctx.esibuf=}")
-    _logger.info(f"{ctx.esimap=}")
-    _logger.info(f"{ctx.esislave=}")
+    # _logger.info(f"{ctx.esibuf=}")
+    # _logger.info(f"{ctx.esimap=}")
+    # _logger.info(f"{ctx.esislave=}")
     _logger.info(f"{ctx.elist=}")
     _logger.info(f"{ctx.idxstack=}")
     _logger.info(f"{ctx.ecaterror=}")
@@ -108,8 +101,8 @@ def log_context(ctx: pyecm.soem.ecx_contextt):
     _logger.info(f"{ctx.PDOdesc=}")
     _logger.info(f"{ctx.eepSM=}")
     _logger.info(f"{ctx.eepFMMU=}")
-    _logger.info(f"{ctx.manualstatechange=}")
-    _logger.info(f"{ctx.userdata=}")
+    # _logger.info(f"{ctx.manualstatechange=}")
+    # _logger.info(f"{ctx.userdata=}")
     log_subdevices(ctx.slavelist)
 
 
@@ -117,36 +110,37 @@ def log_context(ctx: pyecm.soem.ecx_contextt):
     ("maxslave", "maxgroup"),
     [[12345456, 12], [12, 12345], [-1, 23], [23, -1], [123456, 123456]],
 )
-def test_ecx_contextt_incompatible_arguments(maxslave, maxgroup):
+def test_SOEM_incompatible_arguments(maxslave, maxgroup):
     """context init should raise when args are too big / negative"""
     with pytest.raises(TypeError):
-        ecx_contextt(maxslave, maxgroup)
-
-
-@pytest.mark.parametrize(("maxslave", "maxgroup"), [[0, 1], [1, 0]])
-def test_ecx_contextt_value_errors(maxslave, maxgroup):
-    with pytest.raises(ValueError):
-        ecx_contextt(maxslave, maxgroup)
+        SOEM(maxslave, maxgroup, 1)
 
 
 @pytest.mark.parametrize(
-    ("maxslave", "maxgroup"),
+    ("maxslave", "maxgroup", "iomap_size_bytes"), [[0, 1, 1], [1, 0, 1], [1, 1, 0]]
+)
+def test_SOEM_value_errors(maxslave, maxgroup, iomap_size_bytes):
+    with pytest.raises(ValueError):
+        SOEM(maxslave, maxgroup, iomap_size_bytes)
+
+
+@pytest.mark.parametrize(
+    ("maxslave", "maxgroup", "iomap_size_bytes"),
     [
-        [12, 12],
-        [1345, 1],
+        [12, 12, 1],
+        [1345, 1, 12345],
     ],
 )
-def test_ecx_contextt_compatible_arguments(maxslave, maxgroup):
-    ecx_contextt(maxslave, maxgroup)
+def test_SOEM_compatible_arguments(maxslave, maxgroup, iomap_size_bytes):
+    SOEM(maxslave, maxgroup, iomap_size_bytes)
 
 
-def test_ecx_init():
-    context = ecx_contextt(maxslave=3, maxgroup=2)
-    assert ecx_init(context, "eth0") == 0
-    assert ecx_config_init(context, False) == -1
-    iomap = bytearray(256)
-    assert ecx_config_map_group(context, iomap, 1) == 0
-    _logger.info(f"{iomap=}")
+def test_context_init():
+    context = SOEM(maxslave=3, maxgroup=2, iomap_size_bytes=1)
+    assert context.init("eth0") == 0
+    assert context.config_init(False) == -1
+    assert context.config_map_group(1) == 0
+    _logger.info(f"{context.iomap=}")
     log_context(context)
 
 
@@ -166,3 +160,26 @@ def test_ec_eepromSM():
     t.nSM = 23
     with pytest.raises(TypeError):
         t.Creg = 12345
+
+
+# TODO: this fails due to nanobind copy return value policy for vector __getitem__
+# def test_slavelist():
+#     context = SOEM(maxslave=2, maxgroup=2)
+#     context.slavelist[0].state = 13
+#     assert context.slavelist[0].state == 13
+
+
+def test_slavelist2():
+    context = SOEM(maxslave=2, maxgroup=2, iomap_size_bytes=1)
+    new_slave = ec_slavet()
+    new_slave.state = 13
+    context.slavelist[0] = new_slave
+    assert context.slavelist[0].state == 13
+
+
+def test_slavelist3():
+    context = SOEM(maxslave=2, maxgroup=2, iomap_size_bytes=1)
+    new_slave = context.slavelist[0]
+    new_slave.state = 13
+    context.slavelist[0] = new_slave
+    assert context.slavelist[0].state == 13
