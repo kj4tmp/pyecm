@@ -8,65 +8,74 @@ import threading
 
 import pyecm
 
-iomap: bytearray = bytearray(4096)
-expectedWKC: int = 0
-needlf: bool = False
-wkc: int = 0
-inOP: bool = False
-currentgroup: int = 0
-forceByteAlignment: bool = False
 
+def cyclic_task(main_device: pyecm.soem.SOEM):
 
-def cyclic_task():
-    return
+    expected_wkc = (main_device.grouplist[0].outputsWKC * 2) + main_device.grouplist[0].inputsWKC
 
     while True:
         pyecm.soem.osal_usleep(10000)  # run 10 ms cycle
-
         try:
-            pass
+            res = main_device.send_processdata()
+            assert res > 0, f"error on send process data({res})"
+            wkc = main_device.receive_processdata(timeout_us=2000)
+            if wkc != expected_wkc:
+                print(f"invalid wkc!: {wkc}. expected: {expected_wkc}")
 
         except Exception as e:
             print("exception in cyclic task")
             print(e)
 
-    pass
+
+def start_main_operation(main_device: pyecm.soem.SOEM):
+    # all subdevices will be in OP before entering this function
+    print("started main operation")
+
+    cyclic_task_thread = threading.Thread(target=cyclic_task, args=[main_device], daemon=True)
+    cyclic_task_thread.start()
+    cyclic_task_thread.join()
 
 
 def simpletest(ifname: str):
-    context = pyecm.soem.ecx_contextt(maxslave=512, maxgroup=2)
+    main_device = pyecm.soem.SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
 
-    ifname = "enx00e04c681629"
-    init_result = pyecm.soem.ecx_init(context, ifname)
+    init_result = main_device.init(ifname)
     assert (
         init_result > 0
     ), f"Error occured on ecx_init ({init_result}). Are you running with admin privledges?"
     print("ecx_init succeeded.")
 
-    num_sub_devices_found = pyecm.soem.ecx_config_init(context, False)
+    num_sub_devices_found = main_device.config_init(False)
     if num_sub_devices_found == 0:
         raise RuntimeError("No subdevices found!")
     else:
         print(f"found {num_sub_devices_found} subdevices")
+    for i, subdevice in enumerate(main_device.slavelist):
+        if i <= main_device.slavecount:
+            if i == 0:
+                print(f"    {i}| main device")
+            else:
+                print(
+                    f"    {i}|{hex(subdevice.configadr)}|{hex(subdevice.aliasadr)} name: {subdevice.name} manufacturer: {hex(subdevice.eep_man)} product: {hex(subdevice.eep_id)} revision: {hex(subdevice.eep_rev)}"
+                )
+        else:
+            break
 
     # do config map
-
-    iomap = pyecm.soem.IOMapVector(bytearray(256))
-    reqd_iomap_size = pyecm.soem.ecx_config_map_group(context=context, iomap=iomap, group=0)
+    reqd_iomap_size = main_device.config_map_group(group=0)
     assert reqd_iomap_size < len(
-        iomap
-    ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {len(iomap)}"
-    print("Successfully configured iomap.")
+        main_device.iomap
+    ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {len(main_device.iomap)}"
+    print(f"Successfully configured iomap. iomap size: {reqd_iomap_size}")
 
     # config dc
-    dc_subdevice_found = pyecm.soem.ecx_configdc(context)
+    dc_subdevice_found = main_device.configdc()
     if dc_subdevice_found:
         print("Distrubuted clocks configured.")
     else:
         print("No distributed clock enabled subdevices found.")
 
-    lowest_state_found = pyecm.soem.ecx_statecheck(
-        context=context,
+    lowest_state_found = main_device.statecheck(
         slave=0,
         reqstate=4,  # 4 = SAFEOP
         timeout_us=50_000,
@@ -75,15 +84,35 @@ def simpletest(ifname: str):
         lowest_state_found == 4
     ), f"not all subdevices reached SAFEOP. Lowest state: {lowest_state_found}"
 
-    res = pyecm.soem.ecx_send_processdata(context=context)
+    res = main_device.send_processdata()
     assert res > 0, f"error on send process data({res})"
     print("sent first process data")
 
-    wkc = pyecm.soem.ecx_receive_processdata(context=context, timeout_us=2000)
+    wkc = main_device.receive_processdata(timeout_us=2000)
     # assert wkc != -1, f"invalid wkc on first receive process data. wkc: {wkc}"
     # print(f"received first process data. wkc: {wkc}")
-    context.slavelist[0]
-    pyecm.soem.ecx_writestate(context=context, slave=0)
+    main_device_entry = main_device.slavelist[0]
+    main_device_entry.state = 8  # 8 = OP
+    main_device.slavelist[0] = main_device_entry
+    main_device.writestate(slave=0)
+
+    for _ in range(200):
+        res = main_device.send_processdata()
+        assert res > 0, f"error on send process data({res})"
+        main_device.receive_processdata(timeout_us=2000)
+        lowest_state_found = main_device.statecheck(
+            slave=0,
+            reqstate=8,  # 8 = OP
+            timeout_us=2000,
+        )
+        if lowest_state_found == 8:
+            break
+    assert (
+        lowest_state_found == 8
+    ), f"not all subdevices reached OP. Lowest state: {lowest_state_found}"
+    print("all subdevices reached OP")
+
+    start_main_operation(main_device)
 
 
 if __name__ == "__main__":
@@ -105,6 +134,4 @@ if __name__ == "__main__":
         args.ifname.encode() in adapters
     ), f"ifname: {args.ifname.encode()} not in available adapters: {adapters}"
 
-    cyclic_thread = threading.Thread(target=cyclic_task, daemon=True)
-    cyclic_thread.start()
     simpletest(args.ifname)

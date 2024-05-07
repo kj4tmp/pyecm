@@ -30,32 +30,29 @@ def basic_environment():
     if USE_REDUNDANCY:
         assert RED_NETWORK_ADAPTER_NAME in adapter_names
 
-    ctx = pyecm.soem.ecx_contextt(maxslave=512, maxgroup=2)
+    main_device = pyecm.soem.SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
 
     if USE_REDUNDANCY:
         red_port = pyecm.soem.ecx_redportt()
         assert (
-            pyecm.soem.ecx_init_redundant(
-                ctx, red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME
-            )
-            > 0
+            main_device.init_redundant(red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
         )
     else:
-        assert pyecm.soem.ecx_init(ctx, NETWORK_ADAPTER_NAME) > 0
+        assert main_device.init(NETWORK_ADAPTER_NAME) > 0
 
     # i don't know why but this fails frequently unless the subdevices are power cycled
-    assert pyecm.soem.ecx_config_init(ctx, False) == NUM_SUBDEVICES
-    assert ctx.slavecount == NUM_SUBDEVICES
+    assert main_device.config_init(False) == NUM_SUBDEVICES
+    assert main_device.slavecount == NUM_SUBDEVICES
 
     _logger.info("test starting")
-    log_context(ctx)
-    yield ctx
+    log_context(main_device)
+    yield main_device
     _logger.info("test finished")
-    log_context(ctx)
-    pyecm.soem.ecx_close(ctx)
+    log_context(main_device)
+    main_device.close()
 
 
-def log_subdevices(subdevices: list[pyecm.soem.ec_slavet]):
+def log_subdevices(subdevices: pyecm.soem.ECSlaveTVector):
     for i, subdevice in enumerate(subdevices):
         if i == 0:
             _logger.info("MainDevice:")
@@ -122,21 +119,21 @@ def log_subdevices(subdevices: list[pyecm.soem.ec_slavet]):
         _logger.info(f"    {subdevice.group=}")
         _logger.info(f"    {subdevice.FMMUunused=}")
         _logger.info(f"    {subdevice.islost=}")
-        #_logger.info(f"    {subdevice.PO2SOconfig=}")
-        #_logger.info(f"    {subdevice.PO2SOconfigx=}")
+        # _logger.info(f"    {subdevice.PO2SOconfig=}")
+        # _logger.info(f"    {subdevice.PO2SOconfigx=}")
         _logger.info(f"    {subdevice.name=}")
 
 
-def log_context(ctx: pyecm.soem.ecx_contextt):
+def log_context(ctx: pyecm.soem.SOEM):
     _logger.info(f"{ctx.port=}")
     _logger.info(f"{ctx.slavelist=}")
     _logger.info(f"{ctx.slavecount=}")
     _logger.info(f"{ctx.maxslave=}")
     _logger.info(f"{ctx.grouplist=}")
     _logger.info(f"{ctx.maxgroup=}")
-    _logger.info(f"{ctx.esibuf=}")
-    _logger.info(f"{ctx.esimap=}")
-    _logger.info(f"{ctx.esislave=}")
+    # _logger.info(f"{ctx.esibuf=}")
+    # _logger.info(f"{ctx.esimap=}")
+    # _logger.info(f"{ctx.esislave=}")
     _logger.info(f"{ctx.elist=}")
     _logger.info(f"{ctx.idxstack=}")
     _logger.info(f"{ctx.ecaterror=}")
@@ -146,12 +143,12 @@ def log_context(ctx: pyecm.soem.ecx_contextt):
     _logger.info(f"{ctx.PDOdesc=}")
     _logger.info(f"{ctx.eepSM=}")
     _logger.info(f"{ctx.eepFMMU=}")
-    _logger.info(f"{ctx.manualstatechange=}")
-    _logger.info(f"{ctx.userdata=}")
+    # _logger.info(f"{ctx.manualstatechange=}")
+    # _logger.info(f"{ctx.userdata=}")
     log_subdevices(ctx.slavelist)
 
 
-def test_correct_subdevices(basic_environment: pyecm.soem.ecx_contextt):
+def test_correct_subdevices(basic_environment: pyecm.soem.SOEM):
     ctx = basic_environment
 
     assert ctx.slavelist[1].name == "EK1100"
