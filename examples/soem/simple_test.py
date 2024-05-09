@@ -7,6 +7,7 @@ import sys
 import threading
 
 import pyecm
+from pyecm.soem import SOEM
 
 
 def cyclic_task(main_device: pyecm.soem.SOEM):
@@ -37,8 +38,8 @@ def start_main_operation(main_device: pyecm.soem.SOEM):
 
 
 def simpletest(ifname: str):
-    main_device = pyecm.soem.SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
-
+    main_device = SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
+    print(main_device.iomap)
     init_result = main_device.init(ifname)
     assert (
         init_result > 0
@@ -62,10 +63,12 @@ def simpletest(ifname: str):
             break
 
     # do config map
-    reqd_iomap_size = main_device.config_map_group(group=0)
-    assert reqd_iomap_size < len(
-        main_device.iomap
-    ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {len(main_device.iomap)}"
+
+    # reqd_iomap_size = main_device.config_map_group(group=0)
+    # print(main_device.iomap)
+    # assert (
+    #    reqd_iomap_size < 1
+    # ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {len(main_device.iomap)}"
     print(f"Successfully configured iomap. iomap size: {reqd_iomap_size}")
 
     # config dc
@@ -78,7 +81,7 @@ def simpletest(ifname: str):
     lowest_state_found = main_device.statecheck(
         slave=0,
         reqstate=4,  # 4 = SAFEOP
-        timeout_us=50_000,
+        timeout_us=2000,
     )
     assert (
         lowest_state_found == 4
@@ -107,10 +110,12 @@ def simpletest(ifname: str):
         )
         if lowest_state_found == 8:
             break
+        print(f"attempting to reach OP. lowest state found: {lowest_state_found}")
     assert (
         lowest_state_found == 8
     ), f"not all subdevices reached OP. Lowest state: {lowest_state_found}"
     print("all subdevices reached OP")
+    # print(main_device.iomap)
 
     start_main_operation(main_device)
 

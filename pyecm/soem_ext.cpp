@@ -2,17 +2,19 @@
 #include <nanobind/stl/bind_vector.h>
 #include <ethercat.h>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/tuple.h>
+#include <iostream>
 namespace nb = nanobind;
 
 using namespace nb::literals;
 
-using IOMapVector = std::vector<uint8_t>;
+using BytesVector = std::vector<uint8_t>;
+using BytesArray = nb::ndarray<nb::numpy, uint8_t, nb::ndim<1>, nb::c_contig>;
 using ECSlaveTVector = std::vector<ec_slavet>;
 using ECGroupTVector = std::vector<ec_groupt>;
 
 class SOEM_wrapper {
     public:
-    // ecx_contextt
     ecx_contextt context;
     ecx_portt port;
     ECSlaveTVector slavelist;
@@ -33,7 +35,7 @@ class SOEM_wrapper {
     ec_eepromFMMUt eepFMMU;
 
     //iomap
-    IOMapVector iomap;
+    BytesVector iomap;
 
     SOEM_wrapper(uint16_t maxslave_, uint8_t maxgroup_, size_t iomap_size_bytes){
         if (maxslave_ == 0) {
@@ -50,7 +52,9 @@ class SOEM_wrapper {
         maxslave = maxslave_;
         grouplist.resize(maxgroup_);
         maxgroup = maxgroup_;
-        iomap.resize(iomap_size_bytes);
+        iomap.resize(iomap_size_bytes, 0);
+        //iomap_ndarray_shape[0] = iomap_size_bytes;
+        //iomap_ndarray = BytesArray(iomap.data(), 1, iomap_ndarray_shape, nb::handle());
 
         context.port = &port;
         context.slavelist = slavelist.data();
@@ -77,6 +81,15 @@ class SOEM_wrapper {
     }
     auto close(){
         return ecx_close(&this->context);
+    }
+    auto pusherror(const ec_errort *Ec){
+        return ecx_pusherror(&this->context, Ec);
+    }
+    auto poperror(ec_errort *Ec){
+        return ecx_poperror(&this->context, Ec);
+    }
+    auto packeterror(uint16 Slave, uint16 Index, uint8 SubIdx, uint16 ErrorCode){
+        return ecx_packeterror(&this->context, Slave, Index, SubIdx, ErrorCode);
     }
     auto iserror(){
         return ecx_iserror(&this->context);
@@ -126,7 +139,6 @@ class SOEM_wrapper {
     auto config_overlap_map_group( uint8 group){
         return ecx_config_overlap_map_group(&this->context, iomap.data(), group);
     }
-
     auto recover_slave(uint16 slave, int timeout_us){
         return ecx_recover_slave(&this->context, slave, timeout_us);
     }
@@ -140,8 +152,26 @@ class SOEM_wrapper {
         return ecx_dcsync0(&this->context, slave, act, CyclTime_ns, CyclShift_ns);
     }
     auto dcsync01(uint16 slave, boolean act, uint32 CyclTime0_ns, uint32 CyclTime1_ns, int32 CyclShift_ns){
-        return ecx_dcsync01(&this->context,slave, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
-    }   
+        return ecx_dcsync01(&this->context, slave, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
+    }
+
+    // CoE
+    auto SDOread(uint16 slave, uint16 index, uint8 subindex, boolean CA, int *psize, int timeout_us){
+        if (*psize <= 0) {
+            throw std::invalid_argument("size may not be <= 0.");
+        }
+        
+        int wkc;
+        char buffer[static_cast<size_t>(*psize)];
+        wkc = ecx_SDOread(&this->context, slave, index, subindex, CA, psize, &buffer[0], timeout_us);
+        size_t shape[1] = {static_cast<size_t>(*psize)};
+        return std::make_tuple(wkc, BytesArray(buffer, 1, shape, nb::handle()));
+    }
+    auto SDOwrite(uint16 Slave, uint16 Index, uint8 SubIndex, boolean CA, BytesArray data, int Timeout_us){
+
+        return ecx_SDOwrite(&this->context, Slave, Index, SubIndex, CA, data.size(), data.data(), Timeout_us);
+    }
+    
 };
 
 NB_MODULE(soem_ext, m)
@@ -347,7 +377,7 @@ NB_MODULE(soem_ext, m)
 
     // TODO: fill in
     nb::bind_vector<ECSlaveTVector>(m, "ECSlaveTVector");
-    nb::bind_vector<IOMapVector>(m, "IOMapVector");
+    //nb::bind_vector<BytesVector>(m, "BytesVector");
     nb::bind_vector<ECGroupTVector>(m, "ECGroupTVector");
     nb::class_<SOEM_wrapper>(m, "SOEM")
         .def("__init__", [](SOEM_wrapper *context_wrapper, uint16_t maxslave, uint8_t maxgroup, size_t iomap_size_bytes) {
@@ -368,9 +398,19 @@ NB_MODULE(soem_ext, m)
         .def_rw("PDOdesc", &SOEM_wrapper::PDOdesc)
         .def_rw("eepSM", &SOEM_wrapper::eepSM)
         .def_rw("eepFMMU", &SOEM_wrapper::eepFMMU)
-        .def_rw("iomap", &SOEM_wrapper::iomap)
+        //.def_rw("iomap", &SOEM_wrapper::iomap_ndarray)
+        .def_prop_ro("iomap", [](SOEM_wrapper &wrapper){
+            size_t shape[1] = {wrapper.iomap.size()};
+            std::cout << "Size of iomap array: " << shape[0] << std::endl;
+            nb::ndarray<nb::numpy, uint8_t, nb::shape<-1>, nb::c_contig> myarray(wrapper.iomap.data(), 1, shape, nb::handle());
+            std::cout << "here " << std::endl;
+            return myarray;
+            //return BytesArray(wrapper.iomap.data(), 1, shape, nb::handle());
+        })
         .def("close", &SOEM_wrapper::close)
         .def("iserror", &SOEM_wrapper::iserror)
+        .def("poperror", &SOEM_wrapper::poperror)
+        .def("pusherror", &SOEM_wrapper::pusherror)
         .def("init_redundant", &SOEM_wrapper::init_redundant)
         .def("readstate", &SOEM_wrapper::readstate)
         .def("writestate", &SOEM_wrapper::writestate, "slave"_a)
@@ -392,7 +432,12 @@ NB_MODULE(soem_ext, m)
         // ethercatdc.h
         .def("configdc", &SOEM_wrapper::configdc)
         .def("dcsync0", &SOEM_wrapper::dcsync0, "slave"_a, "act"_a, "CyclTime_ns"_a, "CycleShift_ns"_a)
-        .def("dcsync01", &SOEM_wrapper::dcsync01, "slave"_a, "act"_a, "CyclTime0_ns"_a, "CyclTime1_ns"_a, "CyclShift_ns"_a);
+        .def("dcsync01", &SOEM_wrapper::dcsync01, "slave"_a, "act"_a, "CyclTime0_ns"_a, "CyclTime1_ns"_a, "CyclShift_ns"_a)
+        //CoE
+        .def("SDOread", &SOEM_wrapper::SDOread, "slave"_a, "index"_a, "subindex"_a, "complete_access"_a, "size"_a, "timeout_us"_a)
+        .def("SDOwrite", &SOEM_wrapper::SDOwrite, "slave"_a, "index"_a, "subindex"_a, "complete_access"_a, "data"_a, "timeout_us"_a);
+
+
     
     // osal.h
     m.def("osal_usleep", &osal_usleep, "usec"_a);

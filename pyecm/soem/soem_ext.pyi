@@ -1,6 +1,8 @@
 from collections.abc import Iterable, Iterator
 import enum
-from typing import overload
+from typing import Annotated, overload
+
+from numpy.typing import ArrayLike
 
 
 class ECGroupTVector:
@@ -113,77 +115,6 @@ class ECSlaveTVector:
     @overload
     def __delitem__(self, arg: slice, /) -> None: ...
 
-class IOMapVector:
-    @overload
-    def __init__(self) -> None:
-        """Default constructor"""
-
-    @overload
-    def __init__(self, arg: IOMapVector) -> None:
-        """Copy constructor"""
-
-    @overload
-    def __init__(self, arg: Iterable[int], /) -> None:
-        """Construct from an iterable object"""
-
-    def __len__(self) -> int: ...
-
-    def __bool__(self) -> bool:
-        """Check whether the vector is nonempty"""
-
-    def __repr__(self) -> str: ...
-
-    def __iter__(self) -> Iterator[int]: ...
-
-    @overload
-    def __getitem__(self, arg: int, /) -> int: ...
-
-    @overload
-    def __getitem__(self, arg: slice, /) -> IOMapVector: ...
-
-    def clear(self) -> None:
-        """Remove all items from list."""
-
-    def append(self, arg: int, /) -> None:
-        """Append `arg` to the end of the list."""
-
-    def insert(self, arg0: int, arg1: int, /) -> None:
-        """Insert object `arg1` before index `arg0`."""
-
-    def pop(self, index: int = -1) -> int:
-        """Remove and return item at `index` (default last)."""
-
-    def extend(self, arg: IOMapVector, /) -> None:
-        """Extend `self` by appending elements from `arg`."""
-
-    @overload
-    def __setitem__(self, arg0: int, arg1: int, /) -> None: ...
-
-    @overload
-    def __setitem__(self, arg0: slice, arg1: IOMapVector, /) -> None: ...
-
-    @overload
-    def __delitem__(self, arg: int, /) -> None: ...
-
-    @overload
-    def __delitem__(self, arg: slice, /) -> None: ...
-
-    def __eq__(self, arg: IOMapVector, /) -> bool: ...
-
-    def __ne__(self, arg: IOMapVector, /) -> bool: ...
-
-    @overload
-    def __contains__(self, arg: int, /) -> bool: ...
-
-    @overload
-    def __contains__(self, arg: object, /) -> bool: ...
-
-    def count(self, arg: int, /) -> int:
-        """Return number of occurrences of `arg`."""
-
-    def remove(self, arg: int, /) -> None:
-        """Remove first occurrence of `arg`."""
-
 class SOEM:
     def __init__(self, maxslave: int, maxgroup: int, iomap_size_bytes: int) -> None: ...
 
@@ -272,14 +203,15 @@ class SOEM:
     def eepFMMU(self, arg: ec_eepromFMMUt, /) -> None: ...
 
     @property
-    def iomap(self) -> IOMapVector: ...
-
-    @iomap.setter
-    def iomap(self, arg: IOMapVector, /) -> None: ...
+    def iomap(self) -> Annotated[ArrayLike, dict(dtype='uint8', shape=(None), order='C')]: ...
 
     def close(self) -> None: ...
 
     def iserror(self) -> int: ...
+
+    def poperror(self, arg: ec_errort, /) -> int: ...
+
+    def pusherror(self, arg: ec_errort, /) -> None: ...
 
     def init_redundant(self, arg0: ecx_redportt, arg1: str, arg2: str, /) -> int: ...
 
@@ -324,6 +256,10 @@ class SOEM:
     def dcsync0(self, slave: int, act: int, CyclTime_ns: int, CycleShift_ns: int) -> None: ...
 
     def dcsync01(self, slave: int, act: int, CyclTime0_ns: int, CyclTime1_ns: int, CyclShift_ns: int) -> None: ...
+
+    def SDOread(self, slave: int, index: int, subindex: int, complete_access: int, size: int, timeout_us: int) -> tuple[int, Annotated[ArrayLike, dict(dtype='uint8', shape=(None), order='C')]]: ...
+
+    def SDOwrite(self, slave: int, index: int, subindex: int, complete_access: int, data: Annotated[ArrayLike, dict(dtype='uint8', shape=(None), order='C')], timeout_us: int) -> int: ...
 
 def add(a: int, b: int) -> int: ...
 
