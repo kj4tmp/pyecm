@@ -12,6 +12,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = ["numpy"]
 
 [build-system]
 requires = ["scikit-build-core >=0.9.1", "typing_extensions"]

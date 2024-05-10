@@ -5,6 +5,7 @@ A re-write of simple_test.c from SOEM in python.
 import argparse
 import sys
 import threading
+import time
 
 import pyecm
 from pyecm.soem import SOEM
@@ -38,8 +39,7 @@ def start_main_operation(main_device: pyecm.soem.SOEM):
 
 
 def simpletest(ifname: str):
-    main_device = SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
-    print(main_device.iomap)
+    main_device = SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096, manualstatechange=False)
     init_result = main_device.init(ifname)
     assert (
         init_result > 0
@@ -63,13 +63,13 @@ def simpletest(ifname: str):
             break
 
     # do config map
+    reqd_iomap_size = main_device.config_overlap_map()
 
-    # reqd_iomap_size = main_device.config_map_group(group=0)
-    # print(main_device.iomap)
-    # assert (
-    #    reqd_iomap_size < 1
-    # ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {len(main_device.iomap)}"
+    assert (
+        reqd_iomap_size <= main_device.iomap.size
+    ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {main_device.iomap.size}"
     print(f"Successfully configured iomap. iomap size: {reqd_iomap_size}")
+    print("iomap: ", main_device.iomap)
 
     # config dc
     dc_subdevice_found = main_device.configdc()

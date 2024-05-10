@@ -33,11 +33,15 @@ class SOEM_wrapper {
     ec_PDOdesct PDOdesc;
     ec_eepromSMt eepSM;
     ec_eepromFMMUt eepFMMU;
+    bool manualstatechange;
 
     //iomap
     BytesVector iomap;
 
-    SOEM_wrapper(uint16_t maxslave_, uint8_t maxgroup_, size_t iomap_size_bytes){
+    //redundancy
+    ecx_redportt redport;
+
+    SOEM_wrapper(uint16_t maxslave_, uint8_t maxgroup_, size_t iomap_size_bytes, bool manualstatechange_){
         if (maxslave_ == 0) {
                 throw std::invalid_argument("maxslave cannot be zero.");
             }
@@ -47,14 +51,13 @@ class SOEM_wrapper {
         if (iomap_size_bytes == 0) {
             throw std::invalid_argument("iomap_size_bytes cannot be zero.");
         }
+        manualstatechange = manualstatechange_;
 
         slavelist.resize(maxslave_);
         maxslave = maxslave_;
         grouplist.resize(maxgroup_);
         maxgroup = maxgroup_;
         iomap.resize(iomap_size_bytes, 0);
-        //iomap_ndarray_shape[0] = iomap_size_bytes;
-        //iomap_ndarray = BytesArray(iomap.data(), 1, iomap_ndarray_shape, nb::handle());
 
         context.port = &port;
         context.slavelist = slavelist.data();
@@ -76,11 +79,20 @@ class SOEM_wrapper {
         context.eepFMMU = &eepFMMU;
         context.FOEhook = nullptr;
         context.EOEhook = nullptr;
-        context.manualstatechange = 0;
+        context.manualstatechange = manualstatechange; // the context is an int but bool is better for python.
         context.userdata = nullptr;
     }
-    auto close(){
-        return ecx_close(&this->context);
+    auto init(const char * ifname){
+        return ecx_init(&this->context, ifname);
+    }
+    auto init_redundant(const char *ifname, const char *if2name){
+        return ecx_init_redundant(&this->context, &this->redport, ifname, (char *)if2name);
+    }
+    auto config_init(){
+        return ecx_config_init(&this->context, 0); // don't usetable
+    }
+    auto config_overlap_map(){
+        return ecx_config_overlap_map_group(&this->context, iomap.data(), 0);
     }
     auto pusherror(const ec_errort *Ec){
         return ecx_pusherror(&this->context, Ec);
@@ -93,9 +105,6 @@ class SOEM_wrapper {
     }
     auto iserror(){
         return ecx_iserror(&this->context);
-    }
-    auto init_redundant(ecx_redportt *redport, const char *ifname, const char *if2name){
-        return ecx_init_redundant(&this->context, redport, ifname, (char *)if2name);
     }
     auto readstate(){
         return ecx_readstate(&this->context);
@@ -124,21 +133,6 @@ class SOEM_wrapper {
     auto send_processdata_group(uint8 group){
         return ecx_send_processdata_group(&this->context, group);
     }
-    auto init(const char * ifname){
-        return ecx_init(&this->context, ifname);
-    }
-    auto config_init(uint8 usetable){
-        return ecx_config_init(&this->context, usetable);
-    }
-    auto config_map_group( uint8 group){
-        return ecx_config_map_group(&this->context, iomap.data(), group);
-    }
-    auto config_map_group_aligned( uint8 group){
-        return ecx_config_map_group_aligned(&this->context, iomap.data(), group);
-    }
-    auto config_overlap_map_group( uint8 group){
-        return ecx_config_overlap_map_group(&this->context, iomap.data(), group);
-    }
     auto recover_slave(uint16 slave, int timeout_us){
         return ecx_recover_slave(&this->context, slave, timeout_us);
     }
@@ -154,13 +148,11 @@ class SOEM_wrapper {
     auto dcsync01(uint16 slave, boolean act, uint32 CyclTime0_ns, uint32 CyclTime1_ns, int32 CyclShift_ns){
         return ecx_dcsync01(&this->context, slave, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
     }
-
     // CoE
     auto SDOread(uint16 slave, uint16 index, uint8 subindex, boolean CA, int *psize, int timeout_us){
         if (*psize <= 0) {
             throw std::invalid_argument("size may not be <= 0.");
         }
-        
         int wkc;
         char buffer[static_cast<size_t>(*psize)];
         wkc = ecx_SDOread(&this->context, slave, index, subindex, CA, psize, &buffer[0], timeout_us);
@@ -168,8 +160,10 @@ class SOEM_wrapper {
         return std::make_tuple(wkc, BytesArray(buffer, 1, shape, nb::handle()));
     }
     auto SDOwrite(uint16 Slave, uint16 Index, uint8 SubIndex, boolean CA, BytesArray data, int Timeout_us){
-
         return ecx_SDOwrite(&this->context, Slave, Index, SubIndex, CA, data.size(), data.data(), Timeout_us);
+    }
+    auto close(){
+        return ecx_close(&this->context);
     }
     
 };
@@ -380,9 +374,9 @@ NB_MODULE(soem_ext, m)
     //nb::bind_vector<BytesVector>(m, "BytesVector");
     nb::bind_vector<ECGroupTVector>(m, "ECGroupTVector");
     nb::class_<SOEM_wrapper>(m, "SOEM")
-        .def("__init__", [](SOEM_wrapper *context_wrapper, uint16_t maxslave, uint8_t maxgroup, size_t iomap_size_bytes) {
-            new (context_wrapper) SOEM_wrapper(maxslave, maxgroup, iomap_size_bytes);
-        }, "maxslave"_a, "maxgroup"_a, "iomap_size_bytes"_a)
+        .def("__init__", [](SOEM_wrapper *context_wrapper, uint16_t maxslave, uint8_t maxgroup, size_t iomap_size_bytes, bool manualstatechange) {
+            new (context_wrapper) SOEM_wrapper(maxslave, maxgroup, iomap_size_bytes, manualstatechange);
+        }, "maxslave"_a = uint16_t(512), "maxgroup"_a = uint8_t(2), "iomap_size_bytes"_a = size_t(4096), "manualstatechange"_a = bool(1))
         .def_rw("port", &SOEM_wrapper::port)
         .def_rw("slavelist", &SOEM_wrapper::slavelist)
         .def_ro("slavecount", &SOEM_wrapper::slavecount)
@@ -401,17 +395,13 @@ NB_MODULE(soem_ext, m)
         //.def_rw("iomap", &SOEM_wrapper::iomap_ndarray)
         .def_prop_ro("iomap", [](SOEM_wrapper &wrapper){
             size_t shape[1] = {wrapper.iomap.size()};
-            std::cout << "Size of iomap array: " << shape[0] << std::endl;
-            nb::ndarray<nb::numpy, uint8_t, nb::shape<-1>, nb::c_contig> myarray(wrapper.iomap.data(), 1, shape, nb::handle());
-            std::cout << "here " << std::endl;
-            return myarray;
-            //return BytesArray(wrapper.iomap.data(), 1, shape, nb::handle());
-        })
+            return BytesArray(wrapper.iomap.data(), 1, shape, nb::handle());
+        }, nb::rv_policy::reference_internal)
         .def("close", &SOEM_wrapper::close)
         .def("iserror", &SOEM_wrapper::iserror)
         .def("poperror", &SOEM_wrapper::poperror)
         .def("pusherror", &SOEM_wrapper::pusherror)
-        .def("init_redundant", &SOEM_wrapper::init_redundant)
+        .def("init_redundant", &SOEM_wrapper::init_redundant, "ifname"_a, "if2name"_a)
         .def("readstate", &SOEM_wrapper::readstate)
         .def("writestate", &SOEM_wrapper::writestate, "slave"_a)
         .def("statecheck", &SOEM_wrapper::statecheck, "slave"_a, "reqstate"_a, "timeout_us"_a)
@@ -423,10 +413,8 @@ NB_MODULE(soem_ext, m)
         .def("receive_processdata", &SOEM_wrapper::receive_processdata, "timeout_us"_a)
         .def("send_processdata_group", &SOEM_wrapper::send_processdata_group, "group"_a)
         .def("init", &SOEM_wrapper::init, "ifname"_a)
-        .def("config_init", &SOEM_wrapper::config_init, "usetable"_a)
-        .def("config_map_group", &SOEM_wrapper::config_map_group, "group"_a)
-        .def("config_overlap_map_group", &SOEM_wrapper::config_overlap_map_group, "group"_a)
-        .def("config_map_group_aligned", &SOEM_wrapper::config_map_group_aligned, "group"_a)
+        .def("config_init", &SOEM_wrapper::config_init)
+        .def("config_overlap_map", &SOEM_wrapper::config_overlap_map)
         .def("recover_slave", &SOEM_wrapper::recover_slave, "slave"_a, "timeout_us"_a)
         .def("reconfig_slave", &SOEM_wrapper::reconfig_slave, "slave"_a, "timeout_us"_a)
         // ethercatdc.h
