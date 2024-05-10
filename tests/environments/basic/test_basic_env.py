@@ -23,7 +23,7 @@ def basic_environment():
     NUM_SUBDEVICES = 5
 
     adapters = pyecm.soem.ec_find_adapters()
-    adapter_names = [adapter.name.decode() for adapter in adapters]
+    adapter_names = [adapter.name for adapter in adapters]
 
     assert NETWORK_ADAPTER_NAME in adapter_names
 
@@ -33,15 +33,12 @@ def basic_environment():
     main_device = pyecm.soem.SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
 
     if USE_REDUNDANCY:
-        red_port = pyecm.soem.ecx_redportt()
-        assert (
-            main_device.init_redundant(red_port, NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
-        )
+        assert main_device.init_redundant(NETWORK_ADAPTER_NAME, RED_NETWORK_ADAPTER_NAME) > 0
     else:
         assert main_device.init(NETWORK_ADAPTER_NAME) > 0
 
     # i don't know why but this fails frequently unless the subdevices are power cycled
-    assert main_device.config_init(False) == NUM_SUBDEVICES
+    assert main_device.config_init() == NUM_SUBDEVICES
     assert main_device.slavecount == NUM_SUBDEVICES
 
     _logger.info("test starting")

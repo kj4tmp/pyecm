@@ -1,6 +1,6 @@
 import logging
 
-from pyecm.soem import ec_err_type, ec_errort, ec_state, ec_timet
+from pyecm.soem import ec_err_type, ec_state
 
 _logger = logging.getLogger(__name__)
 
@@ -11,5 +11,5 @@ def test_ec_err_type():
 
 
 def test_ec_state():
-    assert ec_state.EC_STATE_NONE.value == 0
-    assert ec_state.EC_STATE_INIT.value == 1
+    assert ec_state.NONE.value == 0
+    assert ec_state.INIT.value == 1

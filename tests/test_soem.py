@@ -138,8 +138,8 @@ def test_SOEM_compatible_arguments(maxslave, maxgroup, iomap_size_bytes):
 def test_context_init():
     context = SOEM(maxslave=3, maxgroup=2, iomap_size_bytes=1)
     assert context.init("eth0") == 0
-    assert context.config_init(False) == -1
-    assert context.config_map_group(1) == 0
+    assert context.config_init() == -1
+    assert context.config_overlap_map() == 0
     _logger.info(f"{context.iomap=}")
     log_context(context)
 
@@ -187,7 +187,7 @@ def test_slavelist3():
 
 def test_iomap_mutability():
     context = SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
-    print(context.iomap)
+    _logger.info(context.iomap)
 
     def new_fun():
         new_context = SOEM(512, 2, 4096)
@@ -196,8 +196,8 @@ def test_iomap_mutability():
     new_fun()
 
     context.init("eth0")
-    context.config_init(False)
-    context.config_map_group(0)
+    context.config_init()
+    context.config_overlap_map()
     _logger.info(context.iomap)
     print(context.iomap)
     assert context.iomap.size == 4096
