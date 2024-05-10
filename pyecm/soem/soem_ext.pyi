@@ -270,10 +270,10 @@ class ec_SMcommtypet:
 
 class ec_adaptert:
     @property
-    def name(self) -> bytes: ...
+    def name(self) -> str: ...
 
     @property
-    def desc(self) -> bytes: ...
+    def desc(self) -> str: ...
 
 class ec_eepromFMMUt:
     def __init__(self) -> None: ...
@@ -914,22 +914,22 @@ class ec_slavet:
     @property
     def name(self) -> str: ...
 
-class ec_state(enum.Enum):
-    EC_STATE_NONE: ec_state
+class ec_state(enum.IntEnum):
+    NONE: ec_state
 
-    EC_STATE_INIT: ec_state
+    INIT: ec_state
 
-    EC_STATE_PRE_OP: ec_state
+    PRE_OP: ec_state
 
-    EC_STATE_BOOT: ec_state
+    BOOT: ec_state
 
-    EC_STATE_SAFE_OP: ec_state
+    SAFE_OP: ec_state
 
-    EC_STATE_OPERATIONAL: ec_state
+    OPERATIONAL: ec_state
 
-    EC_STATE_ACK: ec_state
+    ACK: ec_state
 
-    EC_STATE_ERROR: ec_state
+    ERROR: ec_state
 
 class ec_timet:
     @property

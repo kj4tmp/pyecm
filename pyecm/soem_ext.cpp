@@ -53,8 +53,8 @@ class SOEM_wrapper {
         }
         manualstatechange = manualstatechange_;
 
-        slavelist.resize(maxslave_);
-        maxslave = maxslave_;
+        slavelist.resize(maxslave_); // index 0 reserved for main_device
+        maxslave = maxslave_;        // index 0 reserved for main_device
         grouplist.resize(maxgroup_);
         maxgroup = maxgroup_;
         iomap.resize(iomap_size_bytes, 0);
@@ -197,15 +197,15 @@ NB_MODULE(soem_ext, m)
         .value("EC_ERR_TYPE_FOE_FILE_NOTFOUND", ec_err_type::EC_ERR_TYPE_FOE_FILE_NOTFOUND)
         .value("EC_ERR_TYPE_EOE_INVALID_RX_DATA", ec_err_type::EC_ERR_TYPE_EOE_INVALID_RX_DATA);
 
-    nb::enum_<ec_state>(m, "ec_state")
-        .value("EC_STATE_NONE", ec_state::EC_STATE_NONE)
-        .value("EC_STATE_INIT", ec_state::EC_STATE_INIT)
-        .value("EC_STATE_PRE_OP", ec_state::EC_STATE_PRE_OP)
-        .value("EC_STATE_BOOT", ec_state::EC_STATE_BOOT)
-        .value("EC_STATE_SAFE_OP", ec_state::EC_STATE_SAFE_OP)
-        .value("EC_STATE_OPERATIONAL", ec_state::EC_STATE_OPERATIONAL)
-        .value("EC_STATE_ACK", ec_state::EC_STATE_ACK)
-        .value("EC_STATE_ERROR", ec_state::EC_STATE_ERROR);
+    nb::enum_<ec_state>(m, "ec_state", nb::is_arithmetic())
+        .value("NONE", ec_state::EC_STATE_NONE)
+        .value("INIT", ec_state::EC_STATE_INIT)
+        .value("PRE_OP", ec_state::EC_STATE_PRE_OP)
+        .value("BOOT", ec_state::EC_STATE_BOOT)
+        .value("SAFE_OP", ec_state::EC_STATE_SAFE_OP)
+        .value("OPERATIONAL", ec_state::EC_STATE_OPERATIONAL)
+        .value("ACK", ec_state::EC_STATE_ACK)
+        .value("ERROR", ec_state::EC_STATE_ERROR);
 
     nb::class_<ec_errort>(m, "ec_errort")
         .def_rw("Time", &ec_errort::Time)
@@ -231,10 +231,10 @@ NB_MODULE(soem_ext, m)
 
     // ethercatmain.h
     nb::class_<ec_adaptert>(m, "ec_adaptert")
-        .def_prop_ro("name", [](ec_adaptert *adp) -> nb::bytes
-                     { return nb::bytes(adp->name); })
-        .def_prop_ro("desc", [](ec_adaptert *adp) -> nb::bytes
-                     { return nb::bytes(adp->desc); });
+        .def_prop_ro("name", [](ec_adaptert *adp) -> nb::str
+                     { return nb::str(adp->name); })
+        .def_prop_ro("desc", [](ec_adaptert *adp) -> nb::str
+                     { return nb::str(adp->desc); });
 
     m.def("ec_find_adapters", []() -> nb::typed<nb::list, ec_adaptert>
           {

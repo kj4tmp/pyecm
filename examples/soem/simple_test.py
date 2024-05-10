@@ -7,16 +7,41 @@ import sys
 import threading
 import time
 
+import numpy
+
 import pyecm
-from pyecm.soem import SOEM
+from pyecm.soem import SOEM, ec_state
 
 
-def cyclic_task(main_device: pyecm.soem.SOEM):
+def maintainance_task(main_device: SOEM):
+    while True:
+        time.sleep(0.5)  # run every 500 ms
+
+        main_device.readstate()  # read state of all subdevices into main_device.slavelist
+
+        for subdevice in main_device.slavelist[
+            1 : main_device.slavecount + 1
+        ]:  # index 0 is reserved for main_device
+            if subdevice.state == ec_state.SAFE_OP + ec_state.ERROR:
+                # write SAFEOP + ACK
+                pass
+            elif subdevice.state == ec_state.SAFE_OP:
+                pass
+                # write OP
+            elif subdevice.state == ec_state.NONE:
+                # reconfig
+                pass
+
+    pass
+
+
+def cyclic_task(main_device: SOEM):
 
     expected_wkc = (main_device.grouplist[0].outputsWKC * 2) + main_device.grouplist[0].inputsWKC
 
+    last_iomap_print_time = time.perf_counter()
     while True:
-        pyecm.soem.osal_usleep(10000)  # run 10 ms cycle
+        time.sleep(0.01)  # run 10 ms cycle
         try:
             res = main_device.send_processdata()
             assert res > 0, f"error on send process data({res})"
@@ -24,12 +49,15 @@ def cyclic_task(main_device: pyecm.soem.SOEM):
             if wkc != expected_wkc:
                 print(f"invalid wkc!: {wkc}. expected: {expected_wkc}")
 
+            if time.perf_counter() - last_iomap_print_time > 5:
+                print("iomap: ", main_device.iomap)
+                last_iomap_print_time = time.perf_counter()
         except Exception as e:
             print("exception in cyclic task")
             print(e)
 
 
-def start_main_operation(main_device: pyecm.soem.SOEM):
+def start_cyclic_operation(main_device: pyecm.soem.SOEM):
     # all subdevices will be in OP before entering this function
     print("started main operation")
 
@@ -38,64 +66,106 @@ def start_main_operation(main_device: pyecm.soem.SOEM):
     cyclic_task_thread.join()
 
 
-def simpletest(ifname: str):
+def simpletest(ifname: str, if2name: str | None):
+    # create soem
+    # manual state change means SOEM will not request PREOP automatically on config map
     main_device = SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096, manualstatechange=False)
-    init_result = main_device.init(ifname)
-    assert (
-        init_result > 0
-    ), f"Error occured on ecx_init ({init_result}). Are you running with admin privledges?"
-    print("ecx_init succeeded.")
 
-    num_sub_devices_found = main_device.config_init(False)
-    if num_sub_devices_found == 0:
-        raise RuntimeError("No subdevices found!")
+    # set network interface
+    if not if2name:
+        init_result = main_device.init(ifname)
+        assert (
+            init_result > 0
+        ), f"error occured on init ({init_result}). are you running with admin privledges?"
+        print("ecx_init succeeded.")
     else:
-        print(f"found {num_sub_devices_found} subdevices")
+        red_init_result = main_device.init_redundant(ifname, if2name)
+        assert (
+            red_init_result > 0
+        ), f"error occured on init_redundant ({red_init_result}). are you running with admin privledges?"
+        print("init_redundant succeeded.")
+
+    # find subdevices
+    # requests INIT!
+    num_sub_devices_found = main_device.config_init()
+    if num_sub_devices_found <= 0:
+        raise RuntimeError("no subdevices found!")
+    else:
+        print(f"found {num_sub_devices_found} subdevices:")
+
+    # check not exceeded maxslave
+    max_allowable_subdevices = main_device.maxslave - 1  # index 0 is reserved for main device
+    assert (
+        num_sub_devices_found <= max_allowable_subdevices
+    ), f"number of subdevices found exceeds max allowable: {max_allowable_subdevices}"
+
+    # print info about subdevices
+    print("network summary:")
+    print("position|configadr|aliasadr|name ---|manufacturer|product|revision")
     for i, subdevice in enumerate(main_device.slavelist):
         if i <= main_device.slavecount:
             if i == 0:
-                print(f"    {i}| main device")
+                pass
+                print(f"{i:8}|main device")
             else:
                 print(
-                    f"    {i}|{hex(subdevice.configadr)}|{hex(subdevice.aliasadr)} name: {subdevice.name} manufacturer: {hex(subdevice.eep_man)} product: {hex(subdevice.eep_id)} revision: {hex(subdevice.eep_rev)}"
+                    f"{i:8}|{hex(subdevice.configadr):9}|{hex(subdevice.aliasadr):8}|{subdevice.name:<24}|{hex(subdevice.eep_man):10}|{hex(subdevice.eep_id):10}|{hex(subdevice.eep_rev):10}"
                 )
         else:
             break
 
-    # do config map
-    reqd_iomap_size = main_device.config_overlap_map()
-
+    # request and verify PREOP state
+    main_device_entry = main_device.slavelist[0]
+    main_device_entry.state = ec_state.PRE_OP
+    main_device.slavelist[0] = main_device_entry
+    main_device.writestate(slave=0)
+    lowest_state_found = main_device.statecheck(
+        slave=0,
+        reqstate=pyecm.soem.ec_state.PRE_OP,
+        timeout_us=2000,
+    )
     assert (
-        reqd_iomap_size <= main_device.iomap.size
-    ), f"IO Map size is too small. req'd size: {reqd_iomap_size}. configured size: {main_device.iomap.size}"
-    print(f"Successfully configured iomap. iomap size: {reqd_iomap_size}")
-    print("iomap: ", main_device.iomap)
+        lowest_state_found == ec_state.PRE_OP
+    ), f"not all subdevices reached PREOP! lowest state found: {ec_state(lowest_state_found)}"
+    print(f"reached state: {ec_state(lowest_state_found)}")
+
+    # create iomap
+    required_iomap_size_bytes = main_device.config_overlap_map()
+    assert (
+        required_iomap_size_bytes <= main_device.iomap.size  # type: ignore
+    ), f"io map size is too small. required size: {required_iomap_size_bytes}. configured size: {main_device.iomap.size}"
+    print(f"successfully configured iomap. iomap size: {required_iomap_size_bytes}")
 
     # config dc
     dc_subdevice_found = main_device.configdc()
     if dc_subdevice_found:
-        print("Distrubuted clocks configured.")
+        print("distrubuted clocks configured")
     else:
-        print("No distributed clock enabled subdevices found.")
+        print("no distributed clock enabled subdevices found")
 
+    # request and verify SAFEOP
+    main_device_entry = main_device.slavelist[0]
+    main_device_entry.state = ec_state.SAFE_OP
+    main_device.slavelist[0] = main_device_entry
+    main_device.writestate(slave=0)
     lowest_state_found = main_device.statecheck(
         slave=0,
-        reqstate=4,  # 4 = SAFEOP
+        reqstate=pyecm.soem.ec_state.SAFE_OP,
         timeout_us=2000,
     )
     assert (
-        lowest_state_found == 4
-    ), f"not all subdevices reached SAFEOP. Lowest state: {lowest_state_found}"
+        lowest_state_found == ec_state.SAFE_OP
+    ), f"Not all subdevices reached SAFEOP! Lowest state found: {ec_state(lowest_state_found)}"
+    print(f"reached state: {ec_state(lowest_state_found)}")
 
+    # request and verify OP
+    # need to send at least one set of process data
     res = main_device.send_processdata()
     assert res > 0, f"error on send process data({res})"
-    print("sent first process data")
-
     wkc = main_device.receive_processdata(timeout_us=2000)
-    # assert wkc != -1, f"invalid wkc on first receive process data. wkc: {wkc}"
-    # print(f"received first process data. wkc: {wkc}")
+
     main_device_entry = main_device.slavelist[0]
-    main_device_entry.state = 8  # 8 = OP
+    main_device_entry.state = ec_state.OPERATIONAL
     main_device.slavelist[0] = main_device_entry
     main_device.writestate(slave=0)
 
@@ -105,25 +175,31 @@ def simpletest(ifname: str):
         main_device.receive_processdata(timeout_us=2000)
         lowest_state_found = main_device.statecheck(
             slave=0,
-            reqstate=8,  # 8 = OP
+            reqstate=ec_state.OPERATIONAL,
             timeout_us=2000,
         )
-        if lowest_state_found == 8:
+        if lowest_state_found == ec_state.OPERATIONAL:
             break
-        print(f"attempting to reach OP. lowest state found: {lowest_state_found}")
+        print(f"attempting to reach OP. lowest state found: {ec_state(lowest_state_found)}")
     assert (
-        lowest_state_found == 8
-    ), f"not all subdevices reached OP. Lowest state: {lowest_state_found}"
-    print("all subdevices reached OP")
+        lowest_state_found == ec_state.OPERATIONAL
+    ), f"not all subdevices reached OP. Lowest state: {ec_state(lowest_state_found)}"
+    print(f"reached state: {ec_state(lowest_state_found)}")
+
     # print(main_device.iomap)
 
-    start_main_operation(main_device)
+    start_cyclic_operation(main_device)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pyecm simple test")
     parser.add_argument("--ifname", type=str, help="Interface name (e.g., eth0)", required=False)
+    parser.add_argument(
+        "--if2name", type=str, help="Redundant interface name (e.g., eth1)", required=False
+    )
     args = parser.parse_args()
+
+    print(f"simple_test.py {args=}")
 
     if not args.ifname:
         parser.print_help()
@@ -134,9 +210,15 @@ if __name__ == "__main__":
             print(f"desc: {adapter.desc}")
         sys.exit(1)
 
+    # check ifname in available adapters
     adapters = [adapter.name for adapter in pyecm.soem.ec_find_adapters()]
-    assert (
-        args.ifname.encode() in adapters
-    ), f"ifname: {args.ifname.encode()} not in available adapters: {adapters}"
+    assert args.ifname in adapters, f"ifname: {args.ifname} not in available adapters: {adapters}"
 
-    simpletest(args.ifname)
+    if args.if2name:
+        assert (
+            args.if2name in adapters
+        ), f"if2name: {args.if2name} not in available adapters: {adapters}"
+
+    assert args.ifname != args.if2name, "ifname and if2name cannot be the same."
+
+    simpletest(args.ifname, args.if2name)
