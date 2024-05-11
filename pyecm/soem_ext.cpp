@@ -249,11 +249,11 @@ NB_MODULE(soem_ext, m)
         .def_rw("Dtype", &ec_slavet::Dtype)
         .def_rw("Obits", &ec_slavet::Obits)
         .def_rw("Obytes", &ec_slavet::Obytes)
-        .def_rw("outputs", &ec_slavet::outputs)
+        .def_ro("outputs", &ec_slavet::outputs)
         .def_rw("Ostartbit", &ec_slavet::Ostartbit)
         .def_rw("Ibits", &ec_slavet::Ibits)
         .def_rw("Ibytes", &ec_slavet::Ibytes)
-        .def_rw("inputs", &ec_slavet::inputs)
+        .def_ro("inputs", &ec_slavet::inputs)
         .def_rw("Istartbit", &ec_slavet::Istartbit)
         //.def_rw("SM", &ec_slavet::SM)
         //.def_rw("SMtype", &ec_slavet::SMtype)
@@ -379,12 +379,7 @@ NB_MODULE(soem_ext, m)
         .def_rw("PDOassign", &SOEM_wrapper::PDOassign)
         .def_rw("PDOdesc", &SOEM_wrapper::PDOdesc)
         .def_rw("eepSM", &SOEM_wrapper::eepSM)
-        .def_rw("eepFMMU", &SOEM_wrapper::eepFMMU)
-        //.def_rw("iomap", &SOEM_wrapper::iomap_ndarray)
-        .def_prop_ro("iomap", [](SOEM_wrapper &wrapper){
-            size_t shape[1] = {wrapper.iomap.size()};
-            return BytesArray(wrapper.iomap.data(), 1, shape, nb::handle());
-        }, nb::rv_policy::reference_internal)
+        .def_rw("eepFMMU", &SOEM_wrapper::eepFMMU)        
         .def("close", &SOEM_wrapper::close)
         .def("iserror", &SOEM_wrapper::iserror)
         .def("poperror", &SOEM_wrapper::poperror)
@@ -405,7 +400,33 @@ NB_MODULE(soem_ext, m)
         .def("dcsync01", &SOEM_wrapper::dcsync01, "slave"_a, "act"_a, "CyclTime0_ns"_a, "CyclTime1_ns"_a, "CyclShift_ns"_a)
         //CoE
         .def("SDOread", &SOEM_wrapper::SDOread, "slave"_a, "index"_a, "subindex"_a, "complete_access"_a, "size"_a, "timeout_us"_a)
-        .def("SDOwrite", &SOEM_wrapper::SDOwrite, "slave"_a, "index"_a, "subindex"_a, "complete_access"_a, "data"_a, "timeout_us"_a);
+        .def("SDOwrite", &SOEM_wrapper::SDOwrite, "slave"_a, "index"_a, "subindex"_a, "complete_access"_a, "data"_a, "timeout_us"_a)
+
+        //iomap
+        .def_prop_ro("iomap", [](SOEM_wrapper &wrapper){
+            size_t shape[1] = {wrapper.iomap.size()};
+            return BytesArray(wrapper.iomap.data(), 1, shape, nb::handle());
+        }, nb::rv_policy::reference_internal)
+        .def("get_iomap", [](SOEM_wrapper &wrapper, uint16_t slave) -> std::tuple<BytesArray, BytesArray> {
+            if (slave > wrapper.maxslave) {
+                throw std::invalid_argument("requested slave is larger than maxslave.");
+            }
+            // when viewing master iomap (slave=0). bytecount will be accurate
+            if (slave == 0){
+                size_t shape_inputs[1] = {wrapper.slavelist[slave].Ibytes};
+                size_t shape_outputs[1] = {wrapper.slavelist[slave].Obytes};
+                return std::make_tuple(
+                    BytesArray(wrapper.slavelist[slave].inputs, 1, shape_inputs, nb::handle()),
+                    BytesArray(wrapper.slavelist[slave].outputs, 1, shape_outputs, nb::handle()));
+            }
+            // for slave iomaps, since bytecount can be zero for bitcount < 8, 
+            // we will only trust bitcount
+            size_t shape_inputs[1] = {wrapper.slavelist[slave].Ibits / 8 + (wrapper.slavelist[slave].Ibits % 8 != 0)};
+            size_t shape_outputs[1] = {wrapper.slavelist[slave].Obits / 8 + (wrapper.slavelist[slave].Obits % 8 != 0)};
+            return std::make_tuple(
+                    BytesArray(wrapper.slavelist[slave].inputs, 1, shape_inputs, nb::handle()),
+                    BytesArray(wrapper.slavelist[slave].outputs, 1, shape_outputs, nb::handle()));
+        }, nb::rv_policy::reference_internal, "slave"_a);
 
 
     

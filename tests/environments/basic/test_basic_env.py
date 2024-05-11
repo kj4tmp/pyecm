@@ -6,6 +6,7 @@ pip install . && pytest --log-cli-level=INFO -s tests/environments/basic/test_ba
 """
 
 import logging
+import struct
 import threading
 import time
 
@@ -317,6 +318,7 @@ def test_sdo_write(basic_environment: SOEM):
 # TC in high resolution mode
 def test_pdo(basic_environment: SOEM):
     iomap_size = basic_environment.config_overlap_map()
+    assert iomap_size == 66
     assert iomap_size <= basic_environment.iomap.size  # type: ignore
 
     # request and verify SAFEOP
@@ -362,4 +364,85 @@ def test_pdo(basic_environment: SOEM):
     ), f"not all subdevices reached OP. Lowest state: {ec_state(lowest_state_found)}"
     _logger.info(f"reached state: {ec_state(lowest_state_found)}")
     log_subdevices(basic_environment.slavelist, basic_environment.slavecount)
-    _logger.info(basic_environment.iomap.tostring())
+    _logger.info(basic_environment.iomap.tobytes())
+
+
+def test_get_iomap(basic_environment: SOEM):
+    inputs, outputs = basic_environment.get_iomap(0)
+    _logger.info(f"{inputs.size=}")
+    _logger.info(f"{outputs.size=}")
+
+    inputs, outputs = basic_environment.get_iomap(1)  # EK1100
+    _logger.info(f"{basic_environment.slavelist[1].name} {inputs=}")
+    _logger.info(f"{basic_environment.slavelist[1].name} {outputs=}")
+    assert inputs.size == 0
+    assert outputs.size == 0
+
+    inputs, outputs = basic_environment.get_iomap(2)  # EL3314
+    _logger.info(f"{basic_environment.slavelist[2].name} {inputs=}")
+    _logger.info(f"{basic_environment.slavelist[2].name} {outputs=}")
+    assert inputs.size == 16
+    assert outputs.size == 0
+
+    # check TC reading is 327.68 C (railed high)
+    assert struct.unpack("<h", inputs[2:4])[0] == 32767
+
+    inputs, outputs = basic_environment.get_iomap(3)  # EL2088
+    _logger.info(f"{basic_environment.slavelist[3].name} {inputs=}")
+    _logger.info(f"{basic_environment.slavelist[3].name} {outputs=}")
+    assert inputs.size == 0
+    assert outputs.size == 1
+
+    inputs, outputs = basic_environment.get_iomap(4)  # EL3681
+    _logger.info(f"{basic_environment.slavelist[4].name} {inputs=}")
+    _logger.info(f"{basic_environment.slavelist[4].name} {outputs=}")
+    assert inputs.size == 8
+    assert outputs.size == 2
+
+    inputs, outputs = basic_environment.get_iomap(5)  # EL3204
+    _logger.info(f"{basic_environment.slavelist[5].name} {inputs=}")
+    _logger.info(f"{basic_environment.slavelist[5].name} {outputs=}")
+    assert inputs.size == 16
+    assert outputs.size == 0
+
+
+def test_iomap_byte_alignment(basic_environment: SOEM):
+
+    inputs, outputs = basic_environment.get_iomap(0)
+    _logger.info(f"main device: {inputs.size=} {outputs.size=}")
+    total_inputs = inputs.size
+    total_outputs = outputs.size
+
+    count_inputs = 0
+    count_outputs = 0
+    for i, subdevice in enumerate(
+        basic_environment.slavelist[1 : basic_environment.slavecount + 1]
+    ):
+        inputs, outputs = basic_environment.get_iomap(i + 1)
+        _logger.info(
+            f"{subdevice.name} {inputs.size=} {outputs.size=} {subdevice.Istartbit=} {subdevice.Ostartbit=}"
+        )
+        count_inputs += inputs.size
+        count_outputs += outputs.size
+    assert count_inputs == total_inputs
+    assert count_outputs == total_outputs
+
+
+def test_outputs(basic_environment: SOEM):
+
+    # do 5 seconds of blinking LED
+    _, el2088_outputs = basic_environment.get_iomap(3)
+    start_time = time.perf_counter()
+    last_toggle_time = time.perf_counter()
+    while time.perf_counter() - start_time < 5:
+        basic_environment.send_overlap_processdata_group(0)
+        time.sleep(0.010)  # 10 ms cycletime
+        basic_environment.receive_processdata_group(0, timeout_us=2000)
+
+        if time.perf_counter() - last_toggle_time > 1:
+            if el2088_outputs[0] == 1:  # type: ignore
+                el2088_outputs[0] = 0  # type: ignore
+            else:
+                el2088_outputs[0] = 1  # type: ignore
+            _logger.info(basic_environment.get_iomap(3))
+            last_toggle_time = time.perf_counter()
