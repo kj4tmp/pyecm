@@ -43,9 +43,9 @@ def cyclic_task(main_device: SOEM):
     while True:
         time.sleep(0.01)  # run 10 ms cycle
         try:
-            res = main_device.send_processdata()
+            res = main_device.send_overlap_processdata_group(0)
             assert res > 0, f"error on send process data({res})"
-            wkc = main_device.receive_processdata(timeout_us=2000)
+            wkc = main_device.receive_processdata_group(0, timeout_us=2000)
             if wkc != expected_wkc:
                 print(f"invalid wkc!: {wkc}. expected: {expected_wkc}")
 
@@ -160,9 +160,9 @@ def simpletest(ifname: str, if2name: str | None):
 
     # request and verify OP
     # need to send at least one set of process data
-    res = main_device.send_processdata()
+    res = main_device.send_overlap_processdata_group(0)
     assert res > 0, f"error on send process data({res})"
-    wkc = main_device.receive_processdata(timeout_us=2000)
+    wkc = main_device.receive_processdata_group(0, timeout_us=2000)
 
     main_device_entry = main_device.slavelist[0]
     main_device_entry.state = ec_state.OPERATIONAL
@@ -170,9 +170,9 @@ def simpletest(ifname: str, if2name: str | None):
     main_device.writestate(slave=0)
 
     for _ in range(200):
-        res = main_device.send_processdata()
+        res = main_device.send_overlap_processdata_group(0)
         assert res > 0, f"error on send process data({res})"
-        main_device.receive_processdata(timeout_us=2000)
+        main_device.receive_processdata_group(0, timeout_us=2000)
         lowest_state_found = main_device.statecheck(
             slave=0,
             reqstate=ec_state.OPERATIONAL,

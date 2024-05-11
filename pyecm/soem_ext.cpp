@@ -94,14 +94,17 @@ class SOEM_wrapper {
     auto config_overlap_map(){
         return ecx_config_overlap_map_group(&this->context, iomap.data(), 0);
     }
-    auto pusherror(const ec_errort *Ec){
-        return ecx_pusherror(&this->context, Ec);
+    auto send_overlap_processdata_group(uint8 group){
+        return ecx_send_overlap_processdata_group(&this->context, group);
     }
-    auto poperror(ec_errort *Ec){
-        return ecx_poperror(&this->context, Ec);
+    auto receive_processdata_group(uint8 group, int timeout_us){
+        return ecx_receive_processdata_group(&this->context, group, timeout_us);
     }
-    auto packeterror(uint16 Slave, uint16 Index, uint8 SubIdx, uint16 ErrorCode){
-        return ecx_packeterror(&this->context, Slave, Index, SubIdx, ErrorCode);
+    auto poperror(){
+        ec_errort Ec;
+        bool popped_error;
+        popped_error = ecx_poperror(&this->context, &Ec);
+        return std::make_tuple(popped_error, Ec);
     }
     auto iserror(){
         return ecx_iserror(&this->context);
@@ -114,24 +117,6 @@ class SOEM_wrapper {
     }
     auto statecheck(uint16 slave, uint16 reqstate, int timeout_us){
         return ecx_statecheck(&this->context, slave, reqstate, timeout_us);
-    }
-    auto send_overlap_processdata_group(uint8 group){
-        return ecx_send_overlap_processdata_group(&this->context, group);
-    }
-    auto receive_processdata_group(uint8 group, int timeout_us){
-        return ecx_receive_processdata_group(&this->context, group, timeout_us);
-    }
-    auto send_processdata(){
-        return ecx_send_processdata(&this->context);
-    }
-    auto send_overlap_processdata(){
-        return ecx_send_overlap_processdata(&this->context);
-    }
-    auto receive_processdata(int timeout_us){
-        return ecx_receive_processdata(&this->context, timeout_us);
-    }
-    auto send_processdata_group(uint8 group){
-        return ecx_send_processdata_group(&this->context, group);
     }
     auto recover_slave(uint16 slave, int timeout_us){
         return ecx_recover_slave(&this->context, slave, timeout_us);
@@ -148,16 +133,19 @@ class SOEM_wrapper {
     auto dcsync01(uint16 slave, boolean act, uint32 CyclTime0_ns, uint32 CyclTime1_ns, int32 CyclShift_ns){
         return ecx_dcsync01(&this->context, slave, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
     }
-    // CoE
-    auto SDOread(uint16 slave, uint16 index, uint8 subindex, boolean CA, int *psize, int timeout_us){
-        if (*psize <= 0) {
+    auto SDOread(uint16 slave, uint16 index, uint8 subindex, boolean CA, int size, int timeout_us){
+        if (size <= 0) {
             throw std::invalid_argument("size may not be <= 0.");
         }
         int wkc;
-        char buffer[static_cast<size_t>(*psize)];
-        wkc = ecx_SDOread(&this->context, slave, index, subindex, CA, psize, &buffer[0], timeout_us);
-        size_t shape[1] = {static_cast<size_t>(*psize)};
-        return std::make_tuple(wkc, BytesArray(buffer, 1, shape, nb::handle()));
+        BytesVector *buffer = new BytesVector(size, 0);
+        nb::capsule owner(buffer, [](void *p) noexcept {
+            delete (BytesVector *) p;
+        });
+        int bytes_read = size;
+        wkc = ecx_SDOread(&this->context, slave, index, subindex, CA, &bytes_read, buffer->data(), timeout_us);
+        size_t shape[1] = {buffer->size()};
+        return std::make_tuple(wkc, bytes_read, BytesArray(buffer->data(), 1, shape, owner));
     }
     auto SDOwrite(uint16 Slave, uint16 Index, uint8 SubIndex, boolean CA, BytesArray data, int Timeout_us){
         return ecx_SDOwrite(&this->context, Slave, Index, SubIndex, CA, data.size(), data.data(), Timeout_us);
@@ -400,18 +388,12 @@ NB_MODULE(soem_ext, m)
         .def("close", &SOEM_wrapper::close)
         .def("iserror", &SOEM_wrapper::iserror)
         .def("poperror", &SOEM_wrapper::poperror)
-        .def("pusherror", &SOEM_wrapper::pusherror)
         .def("init_redundant", &SOEM_wrapper::init_redundant, "ifname"_a, "if2name"_a)
         .def("readstate", &SOEM_wrapper::readstate)
         .def("writestate", &SOEM_wrapper::writestate, "slave"_a)
         .def("statecheck", &SOEM_wrapper::statecheck, "slave"_a, "reqstate"_a, "timeout_us"_a)
-        .def("send_overlap_processdata_group", &SOEM_wrapper::send_overlap_processdata_group)
         .def("send_overlap_processdata_group", &SOEM_wrapper::send_overlap_processdata_group, "group"_a)
         .def("receive_processdata_group", &SOEM_wrapper::receive_processdata_group, "group"_a, "timeout_us"_a)
-        .def("send_processdata", &SOEM_wrapper::send_processdata)
-        .def("send_overlap_processdata", &SOEM_wrapper::send_overlap_processdata)
-        .def("receive_processdata", &SOEM_wrapper::receive_processdata, "timeout_us"_a)
-        .def("send_processdata_group", &SOEM_wrapper::send_processdata_group, "group"_a)
         .def("init", &SOEM_wrapper::init, "ifname"_a)
         .def("config_init", &SOEM_wrapper::config_init)
         .def("config_overlap_map", &SOEM_wrapper::config_overlap_map)
