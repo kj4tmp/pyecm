@@ -3,7 +3,6 @@
 #include <ethercat.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/tuple.h>
-#include <iostream>
 namespace nb = nanobind;
 
 using namespace nb::literals;
