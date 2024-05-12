@@ -413,16 +413,16 @@ NB_MODULE(soem_ext, m)
             }
             // when viewing master iomap (slave=0). bytecount will be accurate
             if (slave == 0){
-                size_t shape_inputs[1] = {wrapper.slavelist[slave].Ibytes};
-                size_t shape_outputs[1] = {wrapper.slavelist[slave].Obytes};
+                size_t shape_inputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Ibytes)};
+                size_t shape_outputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Obytes)};
                 return std::make_tuple(
                     BytesArray(wrapper.slavelist[slave].inputs, 1, shape_inputs, nb::handle()),
                     BytesArray(wrapper.slavelist[slave].outputs, 1, shape_outputs, nb::handle()));
             }
             // for slave iomaps, since bytecount can be zero for bitcount < 8, 
             // we will only trust bitcount
-            size_t shape_inputs[1] = {wrapper.slavelist[slave].Ibits / 8 + (wrapper.slavelist[slave].Ibits % 8 != 0)};
-            size_t shape_outputs[1] = {wrapper.slavelist[slave].Obits / 8 + (wrapper.slavelist[slave].Obits % 8 != 0)};
+            size_t shape_inputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Ibits / 8 + (wrapper.slavelist[slave].Ibits % 8 != 0))};
+            size_t shape_outputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Obits / 8 + (wrapper.slavelist[slave].Obits % 8 != 0))};
             return std::make_tuple(
                     BytesArray(wrapper.slavelist[slave].inputs, 1, shape_inputs, nb::handle()),
                     BytesArray(wrapper.slavelist[slave].outputs, 1, shape_outputs, nb::handle()));
