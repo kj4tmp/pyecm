@@ -86,6 +86,7 @@ nanobind_add_stub(
   PYTHON_PATH $<TARGET_FILE_DIR:soem_ext>
   DEPENDS soem_ext
   MARKER_FILE py.typed
+  VERBOSE
 )
 # Install directive for scikit-build-core
 
