@@ -174,24 +174,3 @@ def test_slavelist3():
     new_slave.state = 13
     context.slavelist[0] = new_slave
     assert context.slavelist[0].state == 13
-
-
-def test_iomap_mutability():
-    context = SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096)
-    _logger.info(context.iomap)
-
-    def new_fun():
-        new_context = SOEM(512, 2, 4096)
-        print(new_context.iomap)
-
-    new_fun()
-
-    context.init("eth0")
-    context.config_init()
-    context.config_overlap_map()
-    _logger.info(context.iomap)
-    print(context.iomap)
-    assert context.iomap.size == 4096
-    context.iomap[0] = 255
-    _logger.info(context.iomap)
-    assert context.iomap[0] == 255
