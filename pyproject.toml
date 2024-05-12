@@ -43,6 +43,8 @@ test-requires = "pytest==8.1.1"
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "10.14"
 
+[tool.cibuildwheel.windows]
+archs = ["auto64"] # skip 32-bit on windows since stub generation is broken
 
 # pyproject.toml
 [tool.pytest.ini_options]
