@@ -87,6 +87,7 @@ nanobind_add_stub(
   DEPENDS soem_ext
   MARKER_FILE py.typed
   VERBOSE
+  INSTALL_TIME
 )
 # Install directive for scikit-build-core
 
