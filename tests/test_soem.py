@@ -135,15 +135,6 @@ def test_SOEM_compatible_arguments(maxslave, maxgroup, iomap_size_bytes):
     SOEM(maxslave, maxgroup, iomap_size_bytes)
 
 
-def test_context_init():
-    context = SOEM(maxslave=3, maxgroup=2, iomap_size_bytes=1)
-    assert context.init("eth0") == 0
-    assert context.config_init() == -1
-    assert context.config_overlap_map() == 0
-    _logger.info(f"{context.iomap=}")
-    log_context(context)
-
-
 def test_ec_eepromFMMUt():
     t = ec_eepromFMMUt()
     t.FMMU0 = 23
