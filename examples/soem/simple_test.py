@@ -193,9 +193,21 @@ def simpletest(ifname: str, if2name: str | None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="pyecm simple test")
-    parser.add_argument("--ifname", type=str, help="Interface name (e.g., eth0)", required=False)
+    windows_example_interface_name = (
+        '"' + r"\Device\NPF_{6F17F41B-E756-4470-B7B8-74A3504B4F7B}" + '"'
+    )
     parser.add_argument(
-        "--if2name", type=str, help="Redundant interface name (e.g., eth1)", required=False
+        "--ifname",
+        type=str,
+        help=f"Interface name (e.g., eth0, {windows_example_interface_name})",
+        required=False,
+    )
+
+    parser.add_argument(
+        "--if2name",
+        type=str,
+        help="Redundant interface name (e.g., eth1)",
+        required=False,
     )
     args = parser.parse_args()
 
