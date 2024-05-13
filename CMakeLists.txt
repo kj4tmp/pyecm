@@ -94,6 +94,7 @@ nanobind_add_stub(
 add_custom_command(TARGET soem_ext_stub
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E echo "TARGET_FILE_DIR for soem_ext: $<TARGET_FILE_DIR:soem_ext>"
+    COMMAND_ALWAYS
 )
 
 install(TARGETS soem_ext LIBRARY DESTINATION "pyecm/soem")
