@@ -90,6 +90,13 @@ nanobind_add_stub(
 )
 # Install directive for scikit-build-core
 
+# debug stub gen
+add_custom_command(TARGET soem_ext_stub
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "TARGET_FILE_DIR for soem_ext: $<TARGET_FILE_DIR:soem_ext>"
+)
+
 install(TARGETS soem_ext LIBRARY DESTINATION "pyecm/soem")
 install(FILES "${CMAKE_SOURCE_DIR}/pyecm/soem/soem_ext.pyi" DESTINATION "pyecm/soem")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/py.typed" DESTINATION "pyecm/soem")
+
