@@ -1348,6 +1348,7 @@ def main(args: Optional[List[str]] = None) -> None:
             print("sys.path: %s" % sys.path)
             print(os.listdir(sys.path[1]))
             print("  - importing ..")
+        os.add_dll_directory(sys.path[1])
         mod_imported = importlib.import_module(mod)
 
         if opt.output_file:
