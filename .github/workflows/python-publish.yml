@@ -49,7 +49,7 @@ jobs:
       - if: runner.os == 'Windows'
         name: Install npcap silently
         run: |
-          Start-Process -FilePath "npcap-0.96.exe" -ArgumentList "/S /winpcap_mode" -Wait
+          Start-Process -FilePath "npcap-0.96.exe" -ArgumentList "/S /winpcap_mode=yes" -Wait
 
       - if: runner.os == 'Windows'
         name: Clean up
