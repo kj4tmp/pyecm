@@ -59,6 +59,7 @@ import enum
 import importlib
 import importlib.machinery
 import importlib.util
+import os
 import re
 import sys
 import textwrap
@@ -1345,6 +1346,7 @@ def main(args: Optional[List[str]] = None) -> None:
                 print("\n")
             print('Module "%s" ..' % mod)
             print("sys.path: %s" % sys.path)
+            print(os.listdir(sys.path[1]))
             print("  - importing ..")
         mod_imported = importlib.import_module(mod)
 
