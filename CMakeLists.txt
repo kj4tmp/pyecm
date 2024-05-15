@@ -39,7 +39,7 @@ find_package(nanobind CONFIG REQUIRED)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/SOEM) # soem is installed as a submodule
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/SOEM EXCLUDE_FROM_ALL) # soem is installed as a submodule
 
 nanobind_add_module(
   soem_ext

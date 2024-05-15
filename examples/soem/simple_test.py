@@ -184,7 +184,7 @@ def simpletest(ifname: str, if2name: str | None):
     assert (
         lowest_state_found == ec_state.OPERATIONAL
     ), f"not all subdevices reached OP. Lowest state: {ec_state(lowest_state_found)}"
-    print(f"reached state: {ec_state(lowest_state_found)}")
+    print(f"reached state: {ec_state(lowest_state_found).name}")
 
     # print(main_device.iomap)
 
