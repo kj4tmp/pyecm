@@ -7,8 +7,6 @@ import sys
 import threading
 import time
 
-import numpy
-
 import pyecm
 from pyecm.soem import SOEM, ec_state
 
@@ -17,10 +15,10 @@ def maintainance_task(main_device: SOEM):
     while True:
         time.sleep(0.5)  # run every 500 ms
 
-        main_device.readstate()  # read state of all subdevices into main_device.slavelist
+        main_device.readstate()  # read state of all subdevices into main_device.subdevices
 
-        for subdevice in main_device.slavelist[
-            1 : main_device.slavecount + 1
+        for subdevice in main_device.subdevices[
+            1 : main_device.subdevice_count + 1
         ]:  # index 0 is reserved for main_device
             if subdevice.state == ec_state.SAFE_OP + ec_state.ERROR:
                 # write SAFEOP + ACK
@@ -69,7 +67,9 @@ def start_cyclic_operation(main_device: pyecm.soem.SOEM):
 def simpletest(ifname: str, if2name: str | None):
     # create soem
     # manual state change means SOEM will not request PREOP automatically on config map
-    main_device = SOEM(maxslave=512, maxgroup=2, iomap_size_bytes=4096, manualstatechange=False)
+    main_device = SOEM(
+        max_subdevices=512, maxgroup=2, iomap_size_bytes=4096, manualstatechange=False
+    )
 
     # set network interface
     if not if2name:
@@ -93,8 +93,8 @@ def simpletest(ifname: str, if2name: str | None):
     else:
         print(f"found {num_sub_devices_found} subdevices:")
 
-    # check not exceeded maxslave
-    max_allowable_subdevices = main_device.maxslave - 1  # index 0 is reserved for main device
+    # check not exceeded max_subdevices
+    max_allowable_subdevices = main_device.max_subdevices - 1  # index 0 is reserved for main device
     assert (
         num_sub_devices_found <= max_allowable_subdevices
     ), f"number of subdevices found exceeds max allowable: {max_allowable_subdevices}"
@@ -102,8 +102,8 @@ def simpletest(ifname: str, if2name: str | None):
     # print info about subdevices
     print("network summary:")
     print("position|configadr|aliasadr|name ---|manufacturer|product|revision")
-    for i, subdevice in enumerate(main_device.slavelist):
-        if i <= main_device.slavecount:
+    for i, subdevice in enumerate(main_device.subdevices):
+        if i <= main_device.subdevice_count:
             if i == 0:
                 pass
                 print(f"{i:8}|main device")
@@ -115,18 +115,16 @@ def simpletest(ifname: str, if2name: str | None):
             break
 
     # request and verify PREOP state
-    main_device_entry = main_device.slavelist[0]
-    main_device_entry.state = ec_state.PRE_OP
-    main_device.slavelist[0] = main_device_entry
-    main_device.writestate(slave=0)
+    main_device.get_subdevice(0).state = ec_state.PRE_OP
+    main_device.writestate(subdevice=0)
     lowest_state_found = main_device.statecheck(
-        slave=0,
+        subdevice=0,
         reqstate=pyecm.soem.ec_state.PRE_OP,
         timeout_us=2000,
     )
     assert (
         lowest_state_found == ec_state.PRE_OP
-    ), f"not all subdevices reached PREOP! lowest state found: {ec_state(lowest_state_found)}"
+    ), f"not all subdevices reached PREOP! lowest state found: {ec_state(lowest_state_found).name}"
     print(f"reached state: {ec_state(lowest_state_found)}")
 
     # create iomap
@@ -144,18 +142,16 @@ def simpletest(ifname: str, if2name: str | None):
         print("no distributed clock enabled subdevices found")
 
     # request and verify SAFEOP
-    main_device_entry = main_device.slavelist[0]
-    main_device_entry.state = ec_state.SAFE_OP
-    main_device.slavelist[0] = main_device_entry
-    main_device.writestate(slave=0)
+    main_device.get_subdevice(0).state = ec_state.SAFE_OP
+    main_device.writestate(subdevice=0)
     lowest_state_found = main_device.statecheck(
-        slave=0,
+        subdevice=0,
         reqstate=pyecm.soem.ec_state.SAFE_OP,
         timeout_us=2000,
     )
     assert (
         lowest_state_found == ec_state.SAFE_OP
-    ), f"Not all subdevices reached SAFEOP! Lowest state found: {ec_state(lowest_state_found)}"
+    ), f"Not all subdevices reached SAFEOP! Lowest state found: {ec_state(lowest_state_found).name}"
     print(f"reached state: {ec_state(lowest_state_found)}")
 
     # request and verify OP
@@ -164,26 +160,24 @@ def simpletest(ifname: str, if2name: str | None):
     assert res > 0, f"error on send process data({res})"
     wkc = main_device.receive_processdata_group(0, timeout_us=2000)
 
-    main_device_entry = main_device.slavelist[0]
-    main_device_entry.state = ec_state.OPERATIONAL
-    main_device.slavelist[0] = main_device_entry
-    main_device.writestate(slave=0)
+    main_device.get_subdevice(0).state = ec_state.OPERATIONAL
+    main_device.writestate(subdevice=0)
 
     for _ in range(200):
         res = main_device.send_overlap_processdata_group(0)
         assert res > 0, f"error on send process data({res})"
         main_device.receive_processdata_group(0, timeout_us=2000)
         lowest_state_found = main_device.statecheck(
-            slave=0,
+            subdevice=0,
             reqstate=ec_state.OPERATIONAL,
             timeout_us=2000,
         )
         if lowest_state_found == ec_state.OPERATIONAL:
             break
-        print(f"attempting to reach OP. lowest state found: {ec_state(lowest_state_found)}")
+        print(f"attempting to reach OP. lowest state found: {ec_state(lowest_state_found).name}")
     assert (
         lowest_state_found == ec_state.OPERATIONAL
-    ), f"not all subdevices reached OP. Lowest state: {ec_state(lowest_state_found)}"
+    ), f"not all subdevices reached OP. Lowest state: {ec_state(lowest_state_found).name}"
     print(f"reached state: {ec_state(lowest_state_found).name}")
 
     # print(main_device.iomap)
