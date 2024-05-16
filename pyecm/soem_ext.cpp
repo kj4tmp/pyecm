@@ -9,16 +9,16 @@ using namespace nb::literals;
 
 using BytesVector = std::vector<uint8_t>;
 using BytesArray = nb::ndarray<nb::numpy, uint8_t, nb::ndim<1>, nb::c_contig>;
-using ECSlaveTVector = std::vector<ec_slavet>;
+using SubDeviceVector = std::vector<ec_slavet>;
 using ECGroupTVector = std::vector<ec_groupt>;
 
 class SOEM_wrapper {
     public:
     ecx_contextt context;
     ecx_portt port;
-    ECSlaveTVector slavelist;
-    int slavecount;
-    uint16_t maxslave;
+    SubDeviceVector subdevices;
+    int subdevice_count;
+    uint16_t max_subdevices;
     ECGroupTVector grouplist;
     uint8_t maxgroup;
     uint8_t esibuf [EC_MAXEEPBUF]; 
@@ -40,9 +40,9 @@ class SOEM_wrapper {
     //redundancy
     ecx_redportt redport;
 
-    SOEM_wrapper(uint16_t maxslave_, uint8_t maxgroup_, size_t iomap_size_bytes, bool manualstatechange_){
-        if (maxslave_ == 0) {
-                throw std::invalid_argument("maxslave cannot be zero.");
+    SOEM_wrapper(uint16_t max_subdevices_, uint8_t maxgroup_, size_t iomap_size_bytes, bool manualstatechange_){
+        if (max_subdevices_ == 0) {
+                throw std::invalid_argument("max_subdevices cannot be zero.");
             }
         if (maxgroup_ == 0) {
             throw std::invalid_argument("maxgroup cannot be zero.");
@@ -52,16 +52,16 @@ class SOEM_wrapper {
         }
         manualstatechange = manualstatechange_;
 
-        slavelist.resize(maxslave_); // index 0 reserved for main_device
-        maxslave = maxslave_;        // index 0 reserved for main_device
+        subdevices.resize(max_subdevices_); // index 0 reserved for main_device
+        max_subdevices = max_subdevices_;        // index 0 reserved for main_device
         grouplist.resize(maxgroup_);
         maxgroup = maxgroup_;
         iomap.resize(iomap_size_bytes, 0);
 
         context.port = &port;
-        context.slavelist = slavelist.data();
-        context.slavecount = &slavecount;
-        context.maxslave = maxslave;
+        context.slavelist = subdevices.data();
+        context.slavecount = &subdevice_count;
+        context.maxslave = max_subdevices;
         context.grouplist = grouplist.data();
         context.maxgroup = maxgroup;
         context.esibuf = &esibuf[0];
@@ -81,22 +81,22 @@ class SOEM_wrapper {
         context.manualstatechange = manualstatechange; // the context is an int but bool is better for python.
         context.userdata = nullptr;
     }
-    auto init(const char * ifname){
+    int init(const char * ifname){
         return ecx_init(&this->context, ifname);
     }
-    auto init_redundant(const char *ifname, const char *if2name){
+    int init_redundant(const char *ifname, const char *if2name){
         return ecx_init_redundant(&this->context, &this->redport, ifname, (char *)if2name);
     }
-    auto config_init(){
+    int config_init(){
         return ecx_config_init(&this->context, 0); // don't usetable
     }
-    auto config_overlap_map(){
+    int config_overlap_map(){
         return ecx_config_overlap_map_group(&this->context, iomap.data(), 0);
     }
-    auto send_overlap_processdata_group(uint8 group){
+    int send_overlap_processdata_group(uint8 group){
         return ecx_send_overlap_processdata_group(&this->context, group);
     }
-    auto receive_processdata_group(uint8 group, int timeout_us){
+    int receive_processdata_group(uint8 group, int timeout_us){
         return ecx_receive_processdata_group(&this->context, group, timeout_us);
     }
     auto poperror(){
@@ -105,34 +105,34 @@ class SOEM_wrapper {
         popped_error = ecx_poperror(&this->context, &Ec);
         return std::make_tuple(popped_error, Ec);
     }
-    auto iserror(){
-        return ecx_iserror(&this->context);
+    bool iserror(){
+        return (bool)ecx_iserror(&this->context);
     }
-    auto readstate(){
+    int readstate(){
         return ecx_readstate(&this->context);
     }
-    auto writestate(uint16_t slave){
-        return ecx_writestate(&this->context, slave);
+    int writestate(uint16_t subdevice){
+        return ecx_writestate(&this->context, subdevice);
     }
-    auto statecheck(uint16 slave, uint16 reqstate, int timeout_us){
-        return ecx_statecheck(&this->context, slave, reqstate, timeout_us);
+    uint16_t statecheck(uint16 subdevice, uint16 reqstate, int timeout_us){
+        return ecx_statecheck(&this->context, subdevice, reqstate, timeout_us);
     }
-    auto recover_slave(uint16 slave, int timeout_us){
-        return ecx_recover_slave(&this->context, slave, timeout_us);
+    int recover_subdevice(uint16 subdevice, int timeout_us){
+        return ecx_recover_slave(&this->context, subdevice, timeout_us);
     }
-    auto reconfig_slave(uint16 slave, int timeout_us){
-        return ecx_reconfig_slave(&this->context, slave, timeout_us);
+    int reconfig_subdevice(uint16 subdevice, int timeout_us){
+        return ecx_reconfig_slave(&this->context, subdevice, timeout_us);
     }
-    auto configdc(){
-        return ecx_configdc(&this->context);
+    bool configdc(){
+        return (bool)ecx_configdc(&this->context);
     }
-    auto dcsync0(uint16 slave, boolean act, uint32 CyclTime_ns, int32 CyclShift_ns){
-        return ecx_dcsync0(&this->context, slave, act, CyclTime_ns, CyclShift_ns);
+    void dcsync0(uint16 subdevice, boolean act, uint32 CyclTime_ns, int32 CyclShift_ns){
+        return ecx_dcsync0(&this->context, subdevice, act, CyclTime_ns, CyclShift_ns);
     }
-    auto dcsync01(uint16 slave, boolean act, uint32 CyclTime0_ns, uint32 CyclTime1_ns, int32 CyclShift_ns){
-        return ecx_dcsync01(&this->context, slave, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
+    void dcsync01(uint16 subdevice, boolean act, uint32 CyclTime0_ns, uint32 CyclTime1_ns, int32 CyclShift_ns){
+        return ecx_dcsync01(&this->context, subdevice, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
     }
-    auto SDOread(uint16 slave, uint16 index, uint8 subindex, boolean CA, int size, int timeout_us){
+    auto SDOread(uint16 subdevice, uint16 index, uint8 subindex, boolean CA, int size, int timeout_us){
         if (size <= 0) {
             throw std::invalid_argument("size may not be <= 0.");
         }
@@ -142,14 +142,14 @@ class SOEM_wrapper {
             delete (BytesVector *) p;
         });
         int bytes_read = size;
-        wkc = ecx_SDOread(&this->context, slave, index, subindex, CA, &bytes_read, buffer->data(), timeout_us);
+        wkc = ecx_SDOread(&this->context, subdevice, index, subindex, CA, &bytes_read, buffer->data(), timeout_us);
         size_t shape[1] = {buffer->size()};
         return std::make_tuple(wkc, bytes_read, BytesArray(buffer->data(), 1, shape, owner));
     }
-    auto SDOwrite(uint16 Slave, uint16 Index, uint8 SubIndex, boolean CA, BytesArray data, int Timeout_us){
-        return ecx_SDOwrite(&this->context, Slave, Index, SubIndex, CA, data.size(), data.data(), Timeout_us);
+    int SDOwrite(uint16 subdevice, uint16 Index, uint8 SubIndex, boolean CA, BytesArray data, int Timeout_us){
+        return ecx_SDOwrite(&this->context, subdevice, Index, SubIndex, CA, data.size(), data.data(), Timeout_us);
     }
-    auto close(){
+    void close(){
         return ecx_close(&this->context);
     }
     
@@ -197,7 +197,7 @@ NB_MODULE(soem_ext, m)
     nb::class_<ec_errort>(m, "ec_errort")
         .def_rw("Time", &ec_errort::Time)
         .def_rw("Signal", &ec_errort::Signal)
-        .def_rw("Slave", &ec_errort::Slave)
+        .def_rw("subdevice", &ec_errort::Slave)
         .def_rw("Index", &ec_errort::Index)
         .def_rw("SubIdx", &ec_errort::SubIdx)
         .def_rw("Etype", &ec_errort::Etype)
@@ -235,7 +235,7 @@ NB_MODULE(soem_ext, m)
         return adapter_list; });
 
     // TODO: fill in
-    nb::class_<ec_slavet>(m, "ec_slavet")
+    nb::class_<ec_slavet>(m, "SubDevice")
         .def(nb::init<>())
         .def_rw("state", &ec_slavet::state)
         .def_rw("ALstatuscode", &ec_slavet::ALstatuscode)
@@ -357,75 +357,81 @@ NB_MODULE(soem_ext, m)
         .def_rw("FMMU3", &ec_eepromFMMUt::FMMU3);
 
     // TODO: fill in
-    nb::bind_vector<ECSlaveTVector>(m, "ECSlaveTVector");
-    //nb::bind_vector<BytesVector>(m, "BytesVector");
+    nb::bind_vector<SubDeviceVector>(m, "SubDeviceVector");
     nb::bind_vector<ECGroupTVector>(m, "ECGroupTVector");
     nb::class_<SOEM_wrapper>(m, "SOEM")
-        .def("__init__", [](SOEM_wrapper *context_wrapper, uint16_t maxslave, uint8_t maxgroup, size_t iomap_size_bytes, bool manualstatechange) {
-            new (context_wrapper) SOEM_wrapper(maxslave, maxgroup, iomap_size_bytes, manualstatechange);
-        }, "maxslave"_a = uint16_t(512), "maxgroup"_a = uint8_t(2), "iomap_size_bytes"_a = size_t(4096), "manualstatechange"_a = bool(1))
-        .def_rw("port", &SOEM_wrapper::port)
-        .def_rw("slavelist", &SOEM_wrapper::slavelist)
-        .def_ro("slavecount", &SOEM_wrapper::slavecount)
-        .def_ro("maxslave", &SOEM_wrapper::maxslave)
-        .def_rw("grouplist", &SOEM_wrapper::grouplist)
-        .def_rw("maxgroup", &SOEM_wrapper::maxgroup)
-        .def_rw("elist", &SOEM_wrapper::elist)
-        .def_rw("idxstack", &SOEM_wrapper::idxstack)
-        .def_rw("ecaterror", &SOEM_wrapper::ecaterror)
-        .def_rw("DCtime", &SOEM_wrapper::DCtime)
-        .def_rw("SMcommtype", &SOEM_wrapper::SMcommtype)
-        .def_rw("PDOassign", &SOEM_wrapper::PDOassign)
-        .def_rw("PDOdesc", &SOEM_wrapper::PDOdesc)
-        .def_rw("eepSM", &SOEM_wrapper::eepSM)
-        .def_rw("eepFMMU", &SOEM_wrapper::eepFMMU)        
+        .def("__init__", [](SOEM_wrapper *context_wrapper, uint16_t max_subdevices, uint8_t maxgroup, size_t iomap_size_bytes, bool manualstatechange) {
+            new (context_wrapper) SOEM_wrapper(max_subdevices, maxgroup, iomap_size_bytes, manualstatechange);
+        }, "max_subdevices"_a = uint16_t(512), "maxgroup"_a = uint8_t(2), "iomap_size_bytes"_a = size_t(4096), "manualstatechange"_a = bool(0))
+        .def_ro("port", &SOEM_wrapper::port)
+        .def_rw("subdevices", &SOEM_wrapper::subdevices)
+        .def_ro("subdevice_count", &SOEM_wrapper::subdevice_count)
+        .def_ro("max_subdevices", &SOEM_wrapper::max_subdevices)
+        .def_ro("grouplist", &SOEM_wrapper::grouplist)
+        .def_ro("maxgroup", &SOEM_wrapper::maxgroup)
+        .def_ro("elist", &SOEM_wrapper::elist)
+        .def_ro("idxstack", &SOEM_wrapper::idxstack)
+        .def_ro("ecaterror", &SOEM_wrapper::ecaterror)
+        .def_ro("DCtime", &SOEM_wrapper::DCtime)
+        .def_ro("SMcommtype", &SOEM_wrapper::SMcommtype)
+        .def_ro("PDOassign", &SOEM_wrapper::PDOassign)
+        .def_ro("PDOdesc", &SOEM_wrapper::PDOdesc)
+        .def_ro("eepSM", &SOEM_wrapper::eepSM)
+        .def_ro("eepFMMU", &SOEM_wrapper::eepFMMU)
+        .def_ro("manualstatechange", &SOEM_wrapper::manualstatechange)
         .def("close", &SOEM_wrapper::close)
         .def("iserror", &SOEM_wrapper::iserror)
         .def("poperror", &SOEM_wrapper::poperror)
         .def("init_redundant", &SOEM_wrapper::init_redundant, "ifname"_a, "if2name"_a)
         .def("readstate", &SOEM_wrapper::readstate)
-        .def("writestate", &SOEM_wrapper::writestate, "slave"_a)
-        .def("statecheck", &SOEM_wrapper::statecheck, "slave"_a, "reqstate"_a, "timeout_us"_a)
+        .def("writestate", &SOEM_wrapper::writestate, "subdevice"_a)
+        .def("statecheck", &SOEM_wrapper::statecheck, "subdevice"_a, "reqstate"_a, "timeout_us"_a)
         .def("send_overlap_processdata_group", &SOEM_wrapper::send_overlap_processdata_group, "group"_a)
         .def("receive_processdata_group", &SOEM_wrapper::receive_processdata_group, "group"_a, "timeout_us"_a)
         .def("init", &SOEM_wrapper::init, "ifname"_a)
         .def("config_init", &SOEM_wrapper::config_init)
         .def("config_overlap_map", &SOEM_wrapper::config_overlap_map)
-        .def("recover_slave", &SOEM_wrapper::recover_slave, "slave"_a, "timeout_us"_a)
-        .def("reconfig_slave", &SOEM_wrapper::reconfig_slave, "slave"_a, "timeout_us"_a)
+        .def("recover_subdevice", &SOEM_wrapper::recover_subdevice, "subdevice"_a, "timeout_us"_a)
+        .def("reconfig_subdevice", &SOEM_wrapper::reconfig_subdevice, "subdevice"_a, "timeout_us"_a)
         // ethercatdc.h
         .def("configdc", &SOEM_wrapper::configdc)
-        .def("dcsync0", &SOEM_wrapper::dcsync0, "slave"_a, "act"_a, "CyclTime_ns"_a, "CycleShift_ns"_a)
-        .def("dcsync01", &SOEM_wrapper::dcsync01, "slave"_a, "act"_a, "CyclTime0_ns"_a, "CyclTime1_ns"_a, "CyclShift_ns"_a)
+        .def("dcsync0", &SOEM_wrapper::dcsync0, "subdevice"_a, "act"_a, "CyclTime_ns"_a, "CycleShift_ns"_a)
+        .def("dcsync01", &SOEM_wrapper::dcsync01, "subdevice"_a, "act"_a, "CyclTime0_ns"_a, "CyclTime1_ns"_a, "CyclShift_ns"_a)
         //CoE
-        .def("SDOread", &SOEM_wrapper::SDOread, "slave"_a, "index"_a, "subindex"_a, "complete_access"_a, "size"_a, "timeout_us"_a)
-        .def("SDOwrite", &SOEM_wrapper::SDOwrite, "slave"_a, "index"_a, "subindex"_a, "complete_access"_a, "data"_a, "timeout_us"_a)
+        .def("SDOread", &SOEM_wrapper::SDOread, "subdevice"_a, "index"_a, "subindex"_a, "complete_access"_a, "size"_a, "timeout_us"_a)
+        .def("SDOwrite", &SOEM_wrapper::SDOwrite, "subdevice"_a, "index"_a, "subindex"_a, "complete_access"_a, "data"_a, "timeout_us"_a)
 
         //iomap
         .def_prop_ro("iomap", [](SOEM_wrapper &wrapper){
             size_t shape[1] = {wrapper.iomap.size()};
             return BytesArray(wrapper.iomap.data(), 1, shape, nb::handle());
         }, nb::rv_policy::reference_internal)
-        .def("get_iomap", [](SOEM_wrapper &wrapper, uint16_t slave) -> std::tuple<BytesArray, BytesArray> {
-            if (slave > wrapper.maxslave) {
-                throw std::invalid_argument("requested slave is larger than maxslave.");
+        .def("get_iomap", [](SOEM_wrapper &wrapper, uint16_t subdevice) -> std::tuple<BytesArray, BytesArray> {
+            if (subdevice > wrapper.max_subdevices) {
+                throw std::invalid_argument("requested subdevice is larger than max_subdevices.");
             }
-            // when viewing master iomap (slave=0). bytecount will be accurate
-            if (slave == 0){
-                size_t shape_inputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Ibytes)};
-                size_t shape_outputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Obytes)};
+            // when viewing maindevice iomap (subdevice=0). bytecount will be accurate
+            if (subdevice == 0){
+                size_t shape_inputs[1] = {static_cast<size_t>(wrapper.subdevices[subdevice].Ibytes)};
+                size_t shape_outputs[1] = {static_cast<size_t>(wrapper.subdevices[subdevice].Obytes)};
                 return std::make_tuple(
-                    BytesArray(wrapper.slavelist[slave].inputs, 1, shape_inputs, nb::handle()),
-                    BytesArray(wrapper.slavelist[slave].outputs, 1, shape_outputs, nb::handle()));
+                    BytesArray(wrapper.subdevices[subdevice].inputs, 1, shape_inputs, nb::handle()),
+                    BytesArray(wrapper.subdevices[subdevice].outputs, 1, shape_outputs, nb::handle()));
             }
-            // for slave iomaps, since bytecount can be zero for bitcount < 8, 
+            // for subdevice iomaps, since bytecount can be zero for bitcount < 8, 
             // we will only trust bitcount
-            size_t shape_inputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Ibits / 8 + (wrapper.slavelist[slave].Ibits % 8 != 0))};
-            size_t shape_outputs[1] = {static_cast<size_t>(wrapper.slavelist[slave].Obits / 8 + (wrapper.slavelist[slave].Obits % 8 != 0))};
+            size_t shape_inputs[1] = {static_cast<size_t>(wrapper.subdevices[subdevice].Ibits / 8 + (wrapper.subdevices[subdevice].Ibits % 8 != 0))};
+            size_t shape_outputs[1] = {static_cast<size_t>(wrapper.subdevices[subdevice].Obits / 8 + (wrapper.subdevices[subdevice].Obits % 8 != 0))};
             return std::make_tuple(
-                    BytesArray(wrapper.slavelist[slave].inputs, 1, shape_inputs, nb::handle()),
-                    BytesArray(wrapper.slavelist[slave].outputs, 1, shape_outputs, nb::handle()));
-        }, nb::rv_policy::reference_internal, "slave"_a);
+                    BytesArray(wrapper.subdevices[subdevice].inputs, 1, shape_inputs, nb::handle()),
+                    BytesArray(wrapper.subdevices[subdevice].outputs, 1, shape_outputs, nb::handle()));
+        }, nb::rv_policy::reference_internal, "subdevice"_a)
+        .def("get_subdevice", [](SOEM_wrapper &wrapper, uint16_t subdevice) -> ec_slavet& {
+            if (subdevice > wrapper.subdevices.size() - 1) {
+                throw std::invalid_argument("requested subdevice is larger than max_subdevices.");
+            }
+            return wrapper.subdevices[subdevice];
+        }, nb::rv_policy::reference_internal,"subdevice"_a);
 
 
     
