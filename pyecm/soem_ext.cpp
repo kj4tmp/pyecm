@@ -297,7 +297,11 @@ NB_MODULE(soem_ext, m)
         .def_rw("blockLRW", &ec_slavet::blockLRW)
         .def_rw("group", &ec_slavet::group)
         .def_rw("FMMUunused", &ec_slavet::FMMUunused)
-        .def_rw("islost", &ec_slavet::islost)
+        .def_prop_rw("islost", [](ec_slavet &subdevice){
+            return (bool)subdevice.islost;}, 
+            [](ec_slavet &subdevice, bool value){
+                subdevice.islost = value;
+            })
         //.def_rw("PO2SOconfig", &ec_slavet::PO2SOconfig)
         //.def_rw("PO2SOconfigx", &ec_slavet::PO2SOconfigx)
         .def_ro("name", &ec_slavet::name);

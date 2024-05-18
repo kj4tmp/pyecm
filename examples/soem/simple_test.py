@@ -10,34 +10,75 @@ import time
 import pyecm
 from pyecm.soem import SOEM, ec_state
 
+wkc: int = 0
 
-def maintainance_task(main_device: SOEM):
+
+def maintainance_task(main_device: SOEM, expected_wkc: int):
+    global wkc
+    unhealthy_subdevice_found = False
     while True:
         time.sleep(0.5)  # run every 500 ms
+        if not ((wkc < expected_wkc) | unhealthy_subdevice_found):
+            # nothing to fix
+            continue
+        try:
+            main_device.readstate()  # read state of all subdevices into main_device.subdevices
 
-        main_device.readstate()  # read state of all subdevices into main_device.subdevices
+            unhealthy_subdevice_found = False
+            for subdevice_index, subdevice in enumerate(
+                main_device.subdevices[: main_device.subdevice_count + 1]
+            ):
+                if subdevice_index == 0:  # index 0 is reserved for main_device
+                    continue
+                if subdevice.state != ec_state.OPERATIONAL:
+                    unhealthy_subdevice_found = True
+                    if subdevice.state == ec_state.SAFE_OP + ec_state.ERROR:
+                        print(
+                            f"subdevice {subdevice_index}, name: {subdevice.name} in SAFE_OP + ERROR, attempting ACK..."
+                        )
+                        main_device.get_subdevice(subdevice_index).state = (
+                            ec_state.SAFE_OP + ec_state.ACK
+                        )
+                        main_device.writestate(subdevice_index)
+                    elif subdevice.state == ec_state.SAFE_OP:
+                        print(
+                            f"subdevice {subdevice_index}, name: {subdevice.name} in SAFE_OP, attempting OP..."
+                        )
+                        main_device.get_subdevice(subdevice_index).state = ec_state.OPERATIONAL
+                        main_device.writestate(subdevice_index)
+                    elif subdevice.state > ec_state.NONE:
+                        if main_device.reconfig_subdevice(subdevice_index, timeout_us=10000):
+                            print(
+                                f"subdevice {subdevice_index}, name: {subdevice.name} reconfigured"
+                            )
+                    elif not subdevice.islost:
+                        if (
+                            main_device.statecheck(
+                                subdevice_index, ec_state.OPERATIONAL, timeout_us=10000
+                            )
+                            == ec_state.NONE
+                        ):
+                            main_device.get_subdevice(subdevice_index).islost = True
+                            print(f"subdevice {subdevice_index}, name: {subdevice.name} lost")
+                if subdevice.islost:
+                    if subdevice.state == ec_state.NONE:
+                        if main_device.recover_subdevice(subdevice_index, timeout_us=10000):
+                            print(f"subdevice {subdevice_index}, name: {subdevice.name} recovered")
+                    else:
+                        main_device.get_subdevice(subdevice_index).islost = False
+                        print(f"subdevice {subdevice_index}, name: {subdevice.name} found")
 
-        for subdevice in main_device.subdevices[
-            1 : main_device.subdevice_count + 1
-        ]:  # index 0 is reserved for main_device
-            if subdevice.state == ec_state.SAFE_OP + ec_state.ERROR:
-                # write SAFEOP + ACK
-                pass
-            elif subdevice.state == ec_state.SAFE_OP:
-                pass
-                # write OP
-            elif subdevice.state == ec_state.NONE:
-                # reconfig
-                pass
-
-    pass
+            if not unhealthy_subdevice_found:
+                print("All subdevices healthy")
+        except Exception as e:
+            print("exception in maintainance task")
+            print(e)
 
 
-def cyclic_task(main_device: SOEM):
-
-    expected_wkc = (main_device.grouplist[0].outputsWKC * 2) + main_device.grouplist[0].inputsWKC
-
+def cyclic_task(main_device: SOEM, expected_wkc: int):
+    global wkc
     last_iomap_print_time = time.perf_counter()
+    last_wkc_print_time = time.perf_counter()
     while True:
         time.sleep(0.01)  # run 10 ms cycle
         try:
@@ -45,10 +86,13 @@ def cyclic_task(main_device: SOEM):
             assert res > 0, f"error on send process data({res})"
             wkc = main_device.receive_processdata_group(0, timeout_us=2000)
             if wkc != expected_wkc:
-                print(f"invalid wkc!: {wkc}. expected: {expected_wkc}")
+                # prevent invalid work counter spam.
+                if time.perf_counter() - last_wkc_print_time > 5:
+                    print(f"invalid wkc!: {wkc}. expected: {expected_wkc}")
+                    last_wkc_print_time = time.perf_counter()
 
             if time.perf_counter() - last_iomap_print_time > 5:
-                print("iomap: ", main_device.iomap)
+                # print("iomap: ", main_device.iomap)
                 last_iomap_print_time = time.perf_counter()
         except Exception as e:
             print("exception in cyclic task")
@@ -56,11 +100,17 @@ def cyclic_task(main_device: SOEM):
 
 
 def start_cyclic_operation(main_device: pyecm.soem.SOEM):
-    # all subdevices will be in OP before entering this function
     print("started main operation")
-
-    cyclic_task_thread = threading.Thread(target=cyclic_task, args=[main_device], daemon=True)
+    expected_wkc = (main_device.grouplist[0].outputsWKC * 2) + main_device.grouplist[0].inputsWKC
+    print(f"expected wkc: {expected_wkc}")
+    cyclic_task_thread = threading.Thread(
+        target=cyclic_task, args=[main_device, expected_wkc], daemon=True
+    )
     cyclic_task_thread.start()
+    maintain_task_thread = threading.Thread(
+        target=maintainance_task, args=[main_device, expected_wkc], daemon=True
+    )
+    maintain_task_thread.start()
     cyclic_task_thread.join()
 
 
@@ -131,7 +181,7 @@ def simpletest(ifname: str, if2name: str | None):
     required_iomap_size_bytes = main_device.config_overlap_map()
     assert (
         required_iomap_size_bytes <= main_device.iomap.size  # type: ignore
-    ), f"io map size is too small. required size: {required_iomap_size_bytes}. configured size: {main_device.iomap.size}"
+    ), f"io map size is too small. required size: {required_iomap_size_bytes}. configured size: {main_device.iomap.size}"  # type: ignore
     print(f"successfully configured iomap. iomap size: {required_iomap_size_bytes}")
 
     # config dc
@@ -180,8 +230,6 @@ def simpletest(ifname: str, if2name: str | None):
     ), f"not all subdevices reached OP. Lowest state: {ec_state(lowest_state_found).name}"
     print(f"reached state: {ec_state(lowest_state_found).name}")
 
-    # print(main_device.iomap)
-
     start_cyclic_operation(main_device)
 
 
@@ -211,9 +259,9 @@ if __name__ == "__main__":
         parser.print_help()
         print("Available adapters (use the name of the adapter for this script):")
         for i, adapter in enumerate(pyecm.soem.ec_find_adapters()):
-            print(f"Adapter {i}:")
-            print(f"name: {adapter.name}")
-            print(f"desc: {adapter.desc}")
+            print(f"    Adapter {i}:")
+            print(f"        name: {adapter.name}")
+            print(f"        desc: {adapter.desc}")
         sys.exit(1)
 
     # check ifname in available adapters
