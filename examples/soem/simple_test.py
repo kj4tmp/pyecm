@@ -125,7 +125,7 @@ def simpletest(ifname: str, if2name: str | None):
     assert (
         lowest_state_found == ec_state.PRE_OP
     ), f"not all subdevices reached PREOP! lowest state found: {ec_state(lowest_state_found).name}"
-    print(f"reached state: {ec_state(lowest_state_found)}")
+    print(f"reached state: {ec_state(lowest_state_found).name}")
 
     # create iomap
     required_iomap_size_bytes = main_device.config_overlap_map()
@@ -152,7 +152,7 @@ def simpletest(ifname: str, if2name: str | None):
     assert (
         lowest_state_found == ec_state.SAFE_OP
     ), f"Not all subdevices reached SAFEOP! Lowest state found: {ec_state(lowest_state_found).name}"
-    print(f"reached state: {ec_state(lowest_state_found)}")
+    print(f"reached state: {ec_state(lowest_state_found).name}")
 
     # request and verify OP
     # need to send at least one set of process data
