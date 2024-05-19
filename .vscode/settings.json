@@ -85,5 +85,8 @@
     },
     "editor.formatOnSave": true,
     "python.analysis.typeCheckingMode": "standard",
-    "editor.defaultFormatter": "ms-python.black-formatter"
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "[xml]": {
+        "editor.defaultFormatter": "redhat.vscode-xml"
+    }
 }

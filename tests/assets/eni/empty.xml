@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<EtherCATConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="EtherCATConfig.xsd" Version="1.3">
+    <Config>
+        <Master>
+            <Info>
+                <Name><![CDATA[Device 1 (EtherCAT)]]></Name>
+                <Destination>010105010000</Destination>
+                <Source>000000000000</Source>
+                <EtherType>a488</EtherType>
+            </Info>
+            <InitCmds>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[read slave count]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>7</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>304</Ado>
+                    <Data>0000</Data>
+                    <Retries>0</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[read slave count]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>7</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>304</Ado>
+                    <Data>0000</Data>
+                    <Retries>0</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[enable ECAT IRQ]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>512</Ado>
+                    <Data>0400</Data>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[clear configured addresses]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>16</Ado>
+                    <Data>0000</Data>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[clear crc register]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>768</Ado>
+                    <Data>0000000000000000</Data>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <Transition>PI</Transition>
+                    <Transition>BI</Transition>
+                    <Transition>SI</Transition>
+                    <Transition>OI</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[clear fmmu]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>1536</Ado>
+                    <DataLength>256</DataLength>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[clear sm]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>2048</Ado>
+                    <DataLength>256</DataLength>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[clear dc system time]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>2320</Ado>
+                    <DataLength>32</DataLength>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[clear dc cycle cfg]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>2433</Ado>
+                    <Data>00</Data>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[reset dc speed]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>2352</Ado>
+                    <Data>0010</Data>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[configure dc filter]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>2356</Ado>
+                    <Data>000c</Data>
+                    <Retries>3</Retries>
+                </InitCmd>
+                <InitCmd>
+                    <Transition>IP</Transition>
+                    <BeforeSlave>1</BeforeSlave>
+                    <Comment><![CDATA[en/disable second physical address]]></Comment>
+                    <Requires>cycle</Requires>
+                    <Cmd>8</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>259</Ado>
+                    <Data>00</Data>
+                    <Retries>3</Retries>
+                </InitCmd>
+            </InitCmds>
+        </Master>
+        <Cyclic>
+            <Frame>
+                <Cmd>
+                    <State>PREOP</State>
+                    <State>SAFEOP</State>
+                    <State>OP</State>
+                    <Comment><![CDATA[cyclic cmd]]></Comment>
+                    <Cmd>7</Cmd>
+                    <Adp>0</Adp>
+                    <Ado>304</Ado>
+                    <DataLength>2</DataLength>
+                    <Cnt>0</Cnt>
+                    <InputOffs>16</InputOffs>
+                    <OutputOffs>16</OutputOffs>
+                </Cmd>
+            </Frame>
+        </Cyclic>
+        <ProcessImage>
+            <Inputs>
+                <ByteSize>1536</ByteSize>
+                <Variable>
+                    <Name>InfoData.ChangeCount</Name>
+                    <Comment><![CDATA[Info data change counter]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>0</BitOffs>
+                </Variable>
+                <Variable>
+                    <Name>InfoData.CfgSlaveCount</Name>
+                    <Comment><![CDATA[Count of configured EtherCAT slaves]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>0</BitOffs>
+                </Variable>
+                <Variable>
+                    <Name>Inputs.Frm0State</Name>
+                    <Comment><![CDATA[0x0001 = 1. EtherCAT command not sent (NOP requested)
+0x0002 = 2. EtherCAT command not sent (NOP requested)
+0x0004 = 3. EtherCAT command not sent (NOP requested)
+...
+0x4000 = 15. EtherCAT command not sent (NOP requested)
+0x8000 = complete frame not sent
+]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>12160</BitOffs>
+                </Variable>
+                <Variable>
+                    <Name>Inputs.Frm0WcState</Name>
+                    <Comment><![CDATA[0x0001 = wrong working counter of 1. EtherCAT command received
+0x0002 = wrong working counter of 2. EtherCAT command received
+0x0004 = wrong working counter of 3. EtherCAT command received
+...
+0x4000 = wrong working counter of 15. EtherCAT command received
+0x8000 = complete frame missing
+]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>12176</BitOffs>
+                </Variable>
+                <Variable>
+                    <Name>Inputs.SlaveCount</Name>
+                    <Comment><![CDATA[Actual count of EtherCAT slaves received]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>12240</BitOffs>
+                </Variable>
+                <Variable>
+                    <Name>Inputs.DevState</Name>
+                    <Comment><![CDATA[0x0001 = Link error
+0x0002 = I/O locked after link error (I/O reset required)
+0x0004 = Link error (redundancy adapter)
+0x0008 = Missing one frame (redundancy mode)
+0x0010 = Out of send resources (I/O reset required)
+0x0020 = Watchdog triggered
+0x0040 = Ethernet driver (miniport) not found
+0x0080 = I/O reset active
+0x0100 = At least one device in 'INIT' state
+0x0200 = At least one device in 'PRE-OP' state
+0x0400 = At least one device in 'SAFE-OP' state
+0x0800 = At least one device indicates an error state
+0x1000 = DC not in sync
+]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>12272</BitOffs>
+                </Variable>
+            </Inputs>
+            <Outputs>
+                <ByteSize>1536</ByteSize>
+                <Variable>
+                    <Name>Outputs.Frm0Ctrl</Name>
+                    <Comment><![CDATA[0x0001 = prevent 1. EtherCAT command from sending (request NOP)
+0x0002 = prevent 2. EtherCAT command from sending (request NOP)
+0x0004 = prevent 3. EtherCAT command from sending (request NOP)
+...
+0x4000 = prevent 15. EtherCAT command from sending (request NOP)
+0x8000 = prevent complete frame from sending
+]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>12160</BitOffs>
+                </Variable>
+                <Variable>
+                    <Name>Outputs.Frm0WcCtrl</Name>
+                    <Comment><![CDATA[0x0001 = copy data with wrong working counter of 1. EtherCAT command
+0x0002 = copy data with wrong working counter of 2. EtherCAT command
+0x0004 = copy data with wrong working counter of 3. EtherCAT command
+...
+0x4000 = copy data with wrong working counter of 15. EtherCAT command
+]]></Comment>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>12176</BitOffs>
+                </Variable>
+                <Variable>
+                    <Name>Outputs.DevCtrl</Name>
+                    <DataType>UINT</DataType>
+                    <BitSize>16</BitSize>
+                    <BitOffs>12272</BitOffs>
+                </Variable>
+            </Outputs>
+        </ProcessImage>
+    </Config>
+</EtherCATConfig>
