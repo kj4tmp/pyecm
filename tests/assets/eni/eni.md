@@ -33,3 +33,17 @@ Subdevices:
 | 9        | EL3008      | 8x analog input                                         |
 | 10       | EL3062      | 2-channel analog input                                  |
 | 11       | EL3632      | 2-channel analog input, IEPE/accelerometer, 50 ksps     |
+
+
+## basic.xml
+
+EK1100
+EL1002
+EL1008
+EL2004
+EL2008
+EL3008
+EL3062
+EL4002
+EL4008
+EL7041
