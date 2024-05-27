@@ -5,9 +5,7 @@ from xml.etree.ElementTree import Element
 from annotated_types import Len
 from pydantic_xml import BaseXmlModel, attr, element
 
-# TODO: HexDecType
-# TODO: little endian hex string hexbinary
-# TODO: base data types
+from pyecm.eni_types import HexBinary, HexDecValue
 
 
 class Transition(StrEnum):
@@ -27,7 +25,7 @@ class Transition(StrEnum):
     SAFEOP_TO_SAFEOP = "SS"
 
 
-class DataType(BaseXmlModel):
+class DataTypeWithAttribute(BaseXmlModel):
     dscale: str | None = attr(name="DScale", default=None)
 
     # TODO: Base data types
@@ -37,7 +35,7 @@ class DataType(BaseXmlModel):
 class Variable(BaseXmlModel):
     name: str = element(tag="Name")
     comment: str | None = element(tag="Comment", default=None)
-    data_type: DataType | None = element(tag="DataType", default=None)  # base data type
+    data_type: str | None = element(tag="DataType", default=None)  # TODO: base data type
     bit_size: int = element(tag="BitSize")
     bit_offset: int = element(tag="BitOffs")
 
@@ -78,9 +76,9 @@ class EtherCATCommand(IntEnum):
 
 
 class CopyInfo(BaseXmlModel):
-    source_bit_offset: str = element(tag="SrcBitOffs")  # TODO: hex dec value
-    destination_bit_offset: str = element(tag="DstBitOffs")  # TODO: hex dec value
-    bit_size: str = element(tag="BitSize")  # TODO: hex dec value
+    source_bit_offset: HexDecValue = element(tag="SrcBitOffs")
+    destination_bit_offset: HexDecValue = element(tag="DstBitOffs")
+    bit_size: HexDecValue = element(tag="BitSize")
 
 
 class CopyInfos(BaseXmlModel):
@@ -94,7 +92,7 @@ class FrameCommand(BaseXmlModel):
     subdevice_address: int | None = element(tag="Adp", default=None)
     physical_memory_address: int | None = element(tag="Ado", default=None)
     logical_memory_address: int | None = element(tag="Addr", default=None)
-    data: str | None = element(tag="Data", default=None)  # hex string little endian
+    data: HexBinary | None = element(tag="Data", default=None)
     data_length: int | None = element(tag="DataLength", default=None)
     expected_wkc: int | None = element(tag="Cnt", default=None)
     input_offset_bytes: int = element(tag="InputOffs")
@@ -149,20 +147,22 @@ class Name(BaseXmlModel):
 
 
 class Entry(BaseXmlModel):
-    index: str = element(tag="Index")  # hex dec type
-    subindex: str | None = element(tag="SubIndex", default=None)
+    index: HexDecValue = element(tag="Index")
+    subindex: HexDecValue | None = element(tag="SubIndex", default=None)
     bit_length: int = element(tag="BitLen")
     names: list[Name] = element(tag="Name", default_factory=list)
     comment: str | None = element(tag="Comment", default=None)
-    data_type: DataType | None = element(tag="DataType", default=None)  # base data type
+    data_type: str | None = element(
+        tag="DataType", default=None
+    )  # TODO: use data type with attribute
 
     # TODO: names mandatory when index != 0
 
 
 class Pdo(BaseXmlModel):
-    index: str = element(tag="Index")  # hex dec type
+    index: HexDecValue = element(tag="Index")
     names: Annotated[list[Name], Len(min_length=1)] = element(tag="Name")
-    exclude: list[str] = element(tag="Exclude", default_factory=list)
+    exclude: list[HexDecValue] = element(tag="Exclude", default_factory=list)
     entries: list[Entry] = element(tag="Entry", default_factory=list)
     fixed: bool | None = attr(name="Fixed", default=None)
     mandatory: bool | None = attr(name="Mandatory", default=None)
@@ -228,7 +228,7 @@ class SDOCommand(BaseXmlModel):
     ccs: CCS = element(tags="Ccs")
     index: int = element(tags="Index")
     subindex: int = element(tags="SubIndex")
-    data: str | None = element(tags="Data", default=None)  # TODO: hexbinary
+    data: HexBinary | None = element(tags="Data", default=None)
     disabled: bool | None = element(tags="Disabled", default=None)
 
 
@@ -264,7 +264,7 @@ class ServiceChannelCommand(BaseXmlModel):
     idn: int = element(tag="IDN")
     elements: int = element(tag="Elements")  # TODO: better elements type
     attribute: int = element(tag="Attribute")
-    data: str | None = element(tag="Data", default=None)  # TODO: hex binary
+    data: HexBinary | None = element(tag="Data", default=None)
     disabled: bool | None = element(tag="Disabled", default=None)
 
 
@@ -280,7 +280,7 @@ class MailboxCommand(BaseXmlModel):
     transitions: Annotated[list[Transition], Len(min_length=1)] = element(tag="Transition")
     comment: str | None = element(tag="Comment", default=None)
     timeout_ms: int = element(tag="Timeout")
-    data: str | None = element(tag="Data", default=None)  # TODO: hex binary
+    data: HexBinary | None = element(tag="Data", default=None)
     disabled: bool | None = element(tag="Disabled", default=None)
 
 
@@ -325,8 +325,8 @@ class Requires(StrEnum):
 
 
 class InitECatCmdValidation(BaseXmlModel):
-    data: str = element(tag="Data")  # hex string little endian
-    data_mask: str | None = element(tag="DataMask", default=None)  # hex string little endian
+    data: HexBinary = element(tag="Data")
+    data_mask: HexBinary | None = element(tag="DataMask", default=None)
     timeout_ms: int = element(tag="Timeout")
 
 
@@ -339,7 +339,7 @@ class ECatCmd(BaseXmlModel):
     subdevice_address: int | None = element(tag="Adp", default=None)
     physical_memory_address: int | None = element(tag="Ado", default=None)
     logical_memory_address: int | None = element(tag="Addr", default=None)
-    data: str | None = element(tag="Data", default=None)  # hex string little endian
+    data: HexBinary | None = element(tag="Data", default=None)
     data_length: int | None = element(tag="DataLength", default=None)
     expected_wkc: int | None = element(tag="Cnt", default=None)
     retries: int | None = element(tag="Retries", default=None)
@@ -414,9 +414,9 @@ class EtherType(StrEnum):
 
 class Info(BaseXmlModel):
     name: str = element(tag="Name")
-    destination: str = element(tag="Destination")  # hex string MAC little endian
-    source: str = element(tag="Source")  # hex string MAC little endian
-    ether_type: EtherType | None = element(tag="EtherType")  # hex string
+    destination: HexBinary = element(tag="Destination")
+    source: HexBinary = element(tag="Source")
+    ether_type: EtherType | None = element(tag="EtherType")
 
 
 class MailboxStates(BaseXmlModel):
