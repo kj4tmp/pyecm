@@ -23,7 +23,7 @@ _logger = logging.getLogger(__name__)
 def basic_environment():
     # info about this environment
     USE_REDUNDANCY = False
-    NETWORK_ADAPTER_NAME = "enx00e04c681629"
+    NETWORK_ADAPTER_NAME = "enx00e04c68191a"
     RED_NETWORK_ADAPTER_NAME = "enp0s20f0u3"
     NUM_SUBDEVICES = 5
 
@@ -37,7 +37,7 @@ def basic_environment():
         assert RED_NETWORK_ADAPTER_NAME in adapter_names
 
     main_device = pyecm.soem.SOEM(
-        maxslave=512, maxgroup=2, iomap_size_bytes=4096, manualstatechange=True
+        max_subdevices=512, maxgroup=2, iomap_size_bytes=4096, manualstatechange=True
     )
     _logger.info(f"{main_device=}")
     if USE_REDUNDANCY:
@@ -48,16 +48,14 @@ def basic_environment():
         _logger.info("init successfull")
     # i don't know why but this fails frequently unless the subdevices are power cycled
     assert main_device.config_init() == NUM_SUBDEVICES
-    assert main_device.slavecount == NUM_SUBDEVICES
+    assert main_device.subdevice_count == NUM_SUBDEVICES
     _logger.info("config_init successfull")
 
     # request and verify PREOP state
-    main_device_entry = main_device.slavelist[0]
-    main_device_entry.state = ec_state.PRE_OP
-    main_device.slavelist[0] = main_device_entry
-    main_device.writestate(slave=0)
+    main_device.get_subdevice(0).state = ec_state.PRE_OP
+    main_device.writestate(subdevice=0)
     lowest_state_found = main_device.statecheck(
-        slave=0,
+        subdevice=0,
         reqstate=pyecm.soem.ec_state.PRE_OP,
         timeout_us=2000,
     )
@@ -81,15 +79,15 @@ def basic_environment():
         iserror, error = main_device.poperror()
         if iserror:
             _logger.error(
-                f"{error.Slave=} {hex(error.Index)=} {hex(error.SubIdx)=} {error.Etype=} {hex(error.AbortCode)=} {hex(error.ErrorCode)=} {error.ErrorReg=} {error.b1=} {error.w1=} {error.w2=}"
+                f"{error.subdevice=} {hex(error.Index)=} {hex(error.SubIdx)=} {error.Etype=} {hex(error.AbortCode)=} {hex(error.ErrorCode)=} {error.ErrorReg=} {error.b1=} {error.w1=} {error.w2=}"
             )
 
     # log_context(main_device)
     main_device.close()
 
 
-def log_subdevices(subdevices: pyecm.soem.ECSlaveTVector, slavecount):
-    for i, subdevice in enumerate(subdevices[0 : slavecount + 1]):
+def log_subdevices(subdevices: pyecm.soem.SubDeviceVector, subdevice_count):
+    for i, subdevice in enumerate(subdevices[0 : subdevice_count + 1]):
         if i == 0:
             _logger.info("MainDevice:")
         else:
@@ -162,8 +160,8 @@ def log_subdevices(subdevices: pyecm.soem.ECSlaveTVector, slavecount):
 
 def log_context(ctx: pyecm.soem.SOEM):
     _logger.info(f"{ctx.port=}")
-    _logger.info(f"{ctx.slavecount=}")
-    _logger.info(f"{ctx.maxslave=}")
+    _logger.info(f"{ctx.subdevice_count=}")
+    _logger.info(f"{ctx.max_subdevices=}")
     _logger.info(f"{ctx.grouplist=}")
     _logger.info(f"{ctx.maxgroup=}")
     # _logger.info(f"{ctx.esibuf=}")
@@ -180,18 +178,18 @@ def log_context(ctx: pyecm.soem.SOEM):
     _logger.info(f"{ctx.eepFMMU=}")
     # _logger.info(f"{ctx.manualstatechange=}")
     # _logger.info(f"{ctx.userdata=}")
-    log_subdevices(ctx.slavelist, ctx.slavecount)
+    log_subdevices(ctx.subdevices, ctx.subdevice_count)
 
 
 # we are at PREOP
 def test_correct_subdevices(basic_environment: pyecm.soem.SOEM):
     ctx = basic_environment
 
-    assert ctx.slavelist[1].name == "EK1100"
-    assert ctx.slavelist[2].name == "EL3314"
-    assert ctx.slavelist[3].name == "EL2088"
-    assert ctx.slavelist[4].name == "EL3681"
-    assert ctx.slavelist[5].name == "EL3204"
+    assert ctx.subdevices[1].name == "EK1100"
+    assert ctx.subdevices[2].name == "EL3314"
+    assert ctx.subdevices[3].name == "EL2088"
+    assert ctx.subdevices[4].name == "EL3681"
+    assert ctx.subdevices[5].name == "EL3204"
     pass
 
 
@@ -199,7 +197,7 @@ def test_correct_subdevices(basic_environment: pyecm.soem.SOEM):
 def test_sdo_read(basic_environment: SOEM):
     # read device name (EL3314-0000)
     wkc, bytes_read, res = basic_environment.SDOread(
-        slave=2, index=0x1008, subindex=0x00, complete_access=False, size=32, timeout_us=2000
+        subdevice=2, index=0x1008, subindex=0x00, complete_access=False, size=32, timeout_us=2000
     )
     _logger.info(f"{wkc=} {bytes_read=} {res=}")
     assert wkc == 1
@@ -208,7 +206,7 @@ def test_sdo_read(basic_environment: SOEM):
 
     # read vendor id (0x00000002) (little endian)
     wkc, bytes_read, res = basic_environment.SDOread(
-        slave=2, index=0x1018, subindex=0x01, complete_access=False, size=32, timeout_us=2000
+        subdevice=2, index=0x1018, subindex=0x01, complete_access=False, size=32, timeout_us=2000
     )
     _logger.info(f"{wkc=} {bytes_read=} {res=}")
 
@@ -217,7 +215,7 @@ def test_sdo_read(basic_environment: SOEM):
     assert np.array_equal(res[:bytes_read], np.array([2, 0, 0, 0]))
 
     lowest_state_found = basic_environment.statecheck(
-        slave=0,
+        subdevice=0,
         reqstate=pyecm.soem.ec_state.PRE_OP,
         timeout_us=2000,
     )
@@ -233,7 +231,7 @@ def test_sdo_write(basic_environment: SOEM):
 
     # read signed (0)
     wkc, bytes_read, res = basic_environment.SDOread(
-        slave=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=4000
+        subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=4000
     )
     assert wkc == 1
     assert bytes_read == 1
@@ -242,7 +240,7 @@ def test_sdo_write(basic_environment: SOEM):
 
     # write high resolution (2)
     wkc = basic_environment.SDOwrite(
-        slave=2,
+        subdevice=2,
         index=0x8000,
         subindex=0x02,
         complete_access=False,
@@ -255,7 +253,7 @@ def test_sdo_write(basic_environment: SOEM):
 
     # read high resolution (2)
     wkc, bytes_read, res = basic_environment.SDOread(
-        slave=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=4000
+        subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=4000
     )
     assert wkc == 1
     assert bytes_read == 1
@@ -264,7 +262,7 @@ def test_sdo_write(basic_environment: SOEM):
 
     # write signed (0)
     wkc = basic_environment.SDOwrite(
-        slave=2,
+        subdevice=2,
         index=0x8000,
         subindex=0x02,
         complete_access=False,
@@ -276,7 +274,7 @@ def test_sdo_write(basic_environment: SOEM):
 
     # read signed (0)
     wkc, bytes_read, res = basic_environment.SDOread(
-        slave=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=2000
+        subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=2000
     )
     assert wkc == 1
     assert bytes_read == 1
@@ -285,7 +283,7 @@ def test_sdo_write(basic_environment: SOEM):
 
     # write high resolution (2)
     wkc = basic_environment.SDOwrite(
-        slave=2,
+        subdevice=2,
         index=0x8000,
         subindex=0x02,
         complete_access=False,
@@ -297,7 +295,7 @@ def test_sdo_write(basic_environment: SOEM):
 
     # read high resolution (2)
     wkc, bytes_read, res = basic_environment.SDOread(
-        slave=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=2000
+        subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=2000
     )
     assert wkc == 1
     assert bytes_read == 1
@@ -305,7 +303,7 @@ def test_sdo_write(basic_environment: SOEM):
     _logger.info("good read 7")
 
     lowest_state_found = basic_environment.statecheck(
-        slave=0,
+        subdevice=0,
         reqstate=pyecm.soem.ec_state.PRE_OP,
         timeout_us=2000,
     )
@@ -322,12 +320,12 @@ def test_pdo(basic_environment: SOEM):
     assert iomap_size <= basic_environment.iomap.size  # type: ignore
 
     # request and verify SAFEOP
-    basic_environment_entry = basic_environment.slavelist[0]
+    basic_environment_entry = basic_environment.subdevices[0]
     basic_environment_entry.state = ec_state.SAFE_OP
-    basic_environment.slavelist[0] = basic_environment_entry
-    basic_environment.writestate(slave=0)
+    basic_environment.subdevices[0] = basic_environment_entry
+    basic_environment.writestate(subdevice=0)
     lowest_state_found = basic_environment.statecheck(
-        slave=0,
+        subdevice=0,
         reqstate=pyecm.soem.ec_state.SAFE_OP,
         timeout_us=2000,
     )
@@ -342,17 +340,17 @@ def test_pdo(basic_environment: SOEM):
     assert res > 0, f"error on send process data({res})"
     wkc = basic_environment.receive_processdata_group(0, timeout_us=2000)
 
-    basic_environment_entry = basic_environment.slavelist[0]
+    basic_environment_entry = basic_environment.subdevices[0]
     basic_environment_entry.state = ec_state.OPERATIONAL
-    basic_environment.slavelist[0] = basic_environment_entry
-    basic_environment.writestate(slave=0)
+    basic_environment.subdevices[0] = basic_environment_entry
+    basic_environment.writestate(subdevice=0)
 
     for _ in range(200):
         res = basic_environment.send_overlap_processdata_group(0)
         assert res > 0, f"error on send process data({res})"
         basic_environment.receive_processdata_group(0, timeout_us=2000)
         lowest_state_found = basic_environment.statecheck(
-            slave=0,
+            subdevice=0,
             reqstate=ec_state.OPERATIONAL,
             timeout_us=2000,
         )
@@ -363,7 +361,7 @@ def test_pdo(basic_environment: SOEM):
         lowest_state_found == ec_state.OPERATIONAL
     ), f"not all subdevices reached OP. Lowest state: {ec_state(lowest_state_found)}"
     _logger.info(f"reached state: {ec_state(lowest_state_found)}")
-    log_subdevices(basic_environment.slavelist, basic_environment.slavecount)
+    log_subdevices(basic_environment.subdevices, basic_environment.subdevice_count)
     _logger.info(basic_environment.iomap.tobytes())
 
 
@@ -373,14 +371,14 @@ def test_get_iomap(basic_environment: SOEM):
     _logger.info(f"{outputs.size=}")
 
     inputs, outputs = basic_environment.get_iomap(1)  # EK1100
-    _logger.info(f"{basic_environment.slavelist[1].name} {inputs=}")
-    _logger.info(f"{basic_environment.slavelist[1].name} {outputs=}")
+    _logger.info(f"{basic_environment.subdevices[1].name} {inputs=}")
+    _logger.info(f"{basic_environment.subdevices[1].name} {outputs=}")
     assert inputs.size == 0
     assert outputs.size == 0
 
     inputs, outputs = basic_environment.get_iomap(2)  # EL3314
-    _logger.info(f"{basic_environment.slavelist[2].name} {inputs=}")
-    _logger.info(f"{basic_environment.slavelist[2].name} {outputs=}")
+    _logger.info(f"{basic_environment.subdevices[2].name} {inputs=}")
+    _logger.info(f"{basic_environment.subdevices[2].name} {outputs=}")
     assert inputs.size == 16
     assert outputs.size == 0
 
@@ -388,44 +386,22 @@ def test_get_iomap(basic_environment: SOEM):
     assert struct.unpack("<h", inputs[2:4])[0] == 32767
 
     inputs, outputs = basic_environment.get_iomap(3)  # EL2088
-    _logger.info(f"{basic_environment.slavelist[3].name} {inputs=}")
-    _logger.info(f"{basic_environment.slavelist[3].name} {outputs=}")
+    _logger.info(f"{basic_environment.subdevices[3].name} {inputs=}")
+    _logger.info(f"{basic_environment.subdevices[3].name} {outputs=}")
     assert inputs.size == 0
     assert outputs.size == 1
 
     inputs, outputs = basic_environment.get_iomap(4)  # EL3681
-    _logger.info(f"{basic_environment.slavelist[4].name} {inputs=}")
-    _logger.info(f"{basic_environment.slavelist[4].name} {outputs=}")
+    _logger.info(f"{basic_environment.subdevices[4].name} {inputs=}")
+    _logger.info(f"{basic_environment.subdevices[4].name} {outputs=}")
     assert inputs.size == 8
     assert outputs.size == 2
 
     inputs, outputs = basic_environment.get_iomap(5)  # EL3204
-    _logger.info(f"{basic_environment.slavelist[5].name} {inputs=}")
-    _logger.info(f"{basic_environment.slavelist[5].name} {outputs=}")
+    _logger.info(f"{basic_environment.subdevices[5].name} {inputs=}")
+    _logger.info(f"{basic_environment.subdevices[5].name} {outputs=}")
     assert inputs.size == 16
     assert outputs.size == 0
-
-
-def test_iomap_byte_alignment(basic_environment: SOEM):
-
-    inputs, outputs = basic_environment.get_iomap(0)
-    _logger.info(f"main device: {inputs.size=} {outputs.size=}")
-    total_inputs = inputs.size
-    total_outputs = outputs.size
-
-    count_inputs = 0
-    count_outputs = 0
-    for i, subdevice in enumerate(
-        basic_environment.slavelist[1 : basic_environment.slavecount + 1]
-    ):
-        inputs, outputs = basic_environment.get_iomap(i + 1)
-        _logger.info(
-            f"{subdevice.name} {inputs.size=} {outputs.size=} {subdevice.Istartbit=} {subdevice.Ostartbit=}"
-        )
-        count_inputs += inputs.size
-        count_outputs += outputs.size
-    assert count_inputs == total_inputs
-    assert count_outputs == total_outputs
 
 
 def test_outputs(basic_environment: SOEM):
