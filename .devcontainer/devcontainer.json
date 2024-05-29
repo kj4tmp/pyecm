@@ -17,7 +17,8 @@
 				"tamasfe.even-better-toml",
 				"charliermarsh.ruff",
 				"ms-python.black-formatter",
-				"usernamehw.errorlens"
+				"usernamehw.errorlens",
+				"github.vscode-github-actions"
 			]
 		},
 		"python.analysis.typeCheckingMode": "standard"
