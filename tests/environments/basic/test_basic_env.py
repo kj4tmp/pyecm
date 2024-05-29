@@ -52,7 +52,7 @@ def basic_environment():
     _logger.info("config_init successfull")
 
     # request and verify PREOP state
-    main_device.get_subdevice(0).state = ec_state.PRE_OP
+    main_device.subdevices[0].state = ec_state.PRE_OP
     main_device.writestate(subdevice=0)
     lowest_state_found = main_device.statecheck(
         subdevice=0,

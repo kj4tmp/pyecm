@@ -157,8 +157,6 @@ class SOEM:
 
     def get_iomap(self, subdevice: int) -> tuple[Annotated[ArrayLike, dict(dtype='uint8', shape=(None), order='C')], Annotated[ArrayLike, dict(dtype='uint8', shape=(None), order='C')]]: ...
 
-    def get_subdevice(self, subdevice: int) -> SubDevice: ...
-
 class SubDevice:
     def __init__(self) -> None: ...
 
@@ -674,27 +672,27 @@ class ec_eringt:
     pass
 
 class ec_err_type(enum.Enum):
-    EC_ERR_TYPE_SDO_ERROR: ec_err_type
+    EC_ERR_TYPE_SDO_ERROR = 0
 
-    EC_ERR_TYPE_EMERGENCY: ec_err_type
+    EC_ERR_TYPE_EMERGENCY = 1
 
-    EC_ERR_TYPE_PACKET_ERROR: ec_err_type
+    EC_ERR_TYPE_PACKET_ERROR = 3
 
-    EC_ERR_TYPE_SDOINFO_ERROR: ec_err_type
+    EC_ERR_TYPE_SDOINFO_ERROR = 5
 
-    EC_ERR_TYPE_FOE_ERROR: ec_err_type
+    EC_ERR_TYPE_FOE_ERROR = 5
 
-    EC_ERR_TYPE_FOE_BUF2SMALL: ec_err_type
+    EC_ERR_TYPE_FOE_BUF2SMALL = 6
 
-    EC_ERR_TYPE_FOE_PACKET_NUMBER: ec_err_type
+    EC_ERR_TYPE_FOE_PACKET_NUMBER = 7
 
-    EC_ERR_TYPE_SOE_ERROR: ec_err_type
+    EC_ERR_TYPE_SOE_ERROR = 8
 
-    EC_ERR_TYPE_MBX_ERROR: ec_err_type
+    EC_ERR_TYPE_MBX_ERROR = 9
 
-    EC_ERR_TYPE_FOE_FILE_NOTFOUND: ec_err_type
+    EC_ERR_TYPE_FOE_FILE_NOTFOUND = 10
 
-    EC_ERR_TYPE_EOE_INVALID_RX_DATA: ec_err_type
+    EC_ERR_TYPE_EOE_INVALID_RX_DATA = 11
 
 class ec_errort:
     @property
@@ -866,21 +864,21 @@ class ec_idxstackT:
     pass
 
 class ec_state(enum.IntEnum):
-    NONE: ec_state
+    NONE = 0
 
-    INIT: ec_state
+    INIT = 1
 
-    PRE_OP: ec_state
+    PRE_OP = 2
 
-    BOOT: ec_state
+    BOOT = 3
 
-    SAFE_OP: ec_state
+    SAFE_OP = 4
 
-    OPERATIONAL: ec_state
+    OPERATIONAL = 8
 
-    ACK: ec_state
+    ACK = 16
 
-    ERROR: ec_state
+    ERROR = 16
 
 class ec_timet:
     @property

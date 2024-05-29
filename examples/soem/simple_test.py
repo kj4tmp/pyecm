@@ -165,7 +165,7 @@ def simpletest(ifname: str, if2name: str | None):
             break
 
     # request and verify PREOP state
-    main_device.get_subdevice(0).state = ec_state.PRE_OP
+    main_device.subdevices[0].state = ec_state.PRE_OP
     main_device.writestate(subdevice=0)
     lowest_state_found = main_device.statecheck(
         subdevice=0,
@@ -192,7 +192,7 @@ def simpletest(ifname: str, if2name: str | None):
         print("no distributed clock enabled subdevices found")
 
     # request and verify SAFEOP
-    main_device.get_subdevice(0).state = ec_state.SAFE_OP
+    main_device.subdevices[0].state = ec_state.SAFE_OP
     main_device.writestate(subdevice=0)
     lowest_state_found = main_device.statecheck(
         subdevice=0,
@@ -210,7 +210,7 @@ def simpletest(ifname: str, if2name: str | None):
     assert res > 0, f"error on send process data({res})"
     wkc = main_device.receive_processdata_group(0, timeout_us=2000)
 
-    main_device.get_subdevice(0).state = ec_state.OPERATIONAL
+    main_device.subdevices[0].state = ec_state.OPERATIONAL
     main_device.writestate(subdevice=0)
 
     for _ in range(200):

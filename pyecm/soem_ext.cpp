@@ -361,8 +361,8 @@ NB_MODULE(soem_ext, m)
         .def_rw("FMMU3", &ec_eepromFMMUt::FMMU3);
 
     // TODO: fill in
-    nb::bind_vector<SubDeviceVector>(m, "SubDeviceVector");
-    nb::bind_vector<ECGroupTVector>(m, "ECGroupTVector");
+    nb::bind_vector<SubDeviceVector, nb::rv_policy::reference_internal>(m, "SubDeviceVector");
+    nb::bind_vector<ECGroupTVector, nb::rv_policy::reference_internal>(m, "ECGroupTVector");
     nb::class_<SOEM_wrapper>(m, "SOEM")
         .def("__init__", [](SOEM_wrapper *context_wrapper, uint16_t max_subdevices, uint8_t maxgroup, size_t iomap_size_bytes, bool manualstatechange) {
             new (context_wrapper) SOEM_wrapper(max_subdevices, maxgroup, iomap_size_bytes, manualstatechange);
@@ -429,13 +429,7 @@ NB_MODULE(soem_ext, m)
             return std::make_tuple(
                     BytesArray(wrapper.subdevices[subdevice].inputs, 1, shape_inputs, nb::handle()),
                     BytesArray(wrapper.subdevices[subdevice].outputs, 1, shape_outputs, nb::handle()));
-        }, nb::rv_policy::reference_internal, "subdevice"_a)
-        .def("get_subdevice", [](SOEM_wrapper &wrapper, uint16_t subdevice) -> ec_slavet& {
-            if (subdevice > wrapper.subdevices.size() - 1) {
-                throw std::invalid_argument("requested subdevice is larger than max_subdevices.");
-            }
-            return wrapper.subdevices[subdevice];
-        }, nb::rv_policy::reference_internal,"subdevice"_a);
+        }, nb::rv_policy::reference_internal, "subdevice"_a);
 
 
     

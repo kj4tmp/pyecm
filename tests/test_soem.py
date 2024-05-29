@@ -102,10 +102,9 @@ def test_ec_eepromSM():
         t.Creg = 12345
 
 
-def test_get_subdevice():
+def test_mutable_subdevice_reference():
     context = SOEM(max_subdevices=2, maxgroup=2)
-    context.get_subdevice(0).state = 13
-    assert context.get_subdevice(0).state == 13
+    context.subdevices[0].state = 13
     assert context.subdevices[0].state == 13
 
 
