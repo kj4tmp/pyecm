@@ -128,6 +128,32 @@ def subdevice_info(ifname: str):
             print(
                 f" MBX length wr: {subdevice.mbx_l} rd: {subdevice.mbx_rl} MBX protocols : {subdevice.mbx_proto:02x}"
             )
+            siigen = main_device.siifind(subdevice=i, cat=30)  # ECT_SII_GENERAL=30
+            if siigen:
+                main_device.subdevices[i].CoEdetails = main_device.siigetbyte(i, siigen + 0x07)
+                main_device.subdevices[i].FoEdetails = main_device.siigetbyte(i, siigen + 0x08)
+                main_device.subdevices[i].EoEdetails = main_device.siigetbyte(i, siigen + 0x09)
+                main_device.subdevices[i].SoEdetails = main_device.siigetbyte(i, siigen + 0x0A)
+                if (main_device.siigetbyte(i, siigen + 0x0D) & 0x02) > 0:
+                    main_device.subdevices[i].blockLRW = 1
+                    main_device.subdevices[0].blockLRW += 1
+                print(f"attempting {main_device.siigetbyte(i, siigen + 0x0E)}")
+                main_device.subdevices[i].Ebuscurrent = main_device.siigetbyte(i, siigen + 0x0E)
+                print(f"attempting {main_device.siigetbyte(i, siigen + 0x0F) << 8}")
+                # TODO: handle second byte for ebus current
+                # main_device.subdevices[i].Ebuscurrent = (
+                #     main_device.siigetbyte(i, siigen + 0x0F) << 8
+                # )
+                # + (
+                #     main_device.siigetbyte(i, siigen + 0x0F) << 8
+                # )
+                main_device.subdevices[0].Ebuscurrent += main_device.subdevices[i].Ebuscurrent
+                print(
+                    f"CoE details: {main_device.subdevices[i].CoEdetails:02x} FoE details: {main_device.subdevices[i].FoEdetails:02x} EoE details: {main_device.subdevices[i].EoEdetails:02x} SoE details: {main_device.subdevices[i].SoEdetails:02x}"
+                )
+                print(
+                    f"Ebus current: {main_device.subdevices[i].Ebuscurrent}[mA]\nonly LRD/LWR: {main_device.subdevices[i].blockLRW}"
+                )
 
 
 if __name__ == "__main__":

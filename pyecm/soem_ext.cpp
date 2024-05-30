@@ -149,6 +149,12 @@ class SOEM_wrapper {
     int SDOwrite(uint16 subdevice, uint16 Index, uint8 SubIndex, boolean CA, BytesArray data, int Timeout_us){
         return ecx_SDOwrite(&this->context, subdevice, Index, SubIndex, CA, data.size(), data.data(), Timeout_us);
     }
+    uint16 siifind(uint16 subdevice, uint16 cat){
+        return ecx_siifind(&this->context, subdevice, cat);
+    }
+    uint8 siigetbyte(uint16 subdevice, uint16 address){
+        return ecx_siigetbyte(&this->context, subdevice, address);
+    }
     void close(){
         return ecx_close(&this->context);
     }
@@ -328,13 +334,13 @@ NB_MODULE(soem_ext, m)
         .def_ro("SIIindex", &ec_slavet::SIIindex)
         .def_ro("eep_8byte", &ec_slavet::eep_8byte)
         .def_ro("eep_pdi", &ec_slavet::eep_pdi)
-        .def_ro("CoEdetails", &ec_slavet::CoEdetails)
-        .def_ro("FoEdetails", &ec_slavet::FoEdetails)
-        .def_ro("EoEdetails", &ec_slavet::EoEdetails)
-        .def_ro("SoEdetails", &ec_slavet::SoEdetails)
-        .def_ro("Ebuscurrent", &ec_slavet::Ebuscurrent)
-        .def_ro("blockLRW", &ec_slavet::blockLRW)
-        .def_ro("group", &ec_slavet::group)
+        .def_rw("CoEdetails", &ec_slavet::CoEdetails)
+        .def_rw("FoEdetails", &ec_slavet::FoEdetails)
+        .def_rw("EoEdetails", &ec_slavet::EoEdetails)
+        .def_rw("SoEdetails", &ec_slavet::SoEdetails)
+        .def_rw("Ebuscurrent", &ec_slavet::Ebuscurrent)
+        .def_rw("blockLRW", &ec_slavet::blockLRW)
+        .def_rw("group", &ec_slavet::group)
         .def_ro("FMMUunused", &ec_slavet::FMMUunused)
         .def_prop_rw("islost", [](ec_slavet &subdevice){
             return (bool)subdevice.islost;}, 
@@ -443,7 +449,9 @@ NB_MODULE(soem_ext, m)
         //CoE
         .def("SDOread", &SOEM_wrapper::SDOread, "subdevice"_a, "index"_a, "subindex"_a, "complete_access"_a, "size"_a, "timeout_us"_a)
         .def("SDOwrite", &SOEM_wrapper::SDOwrite, "subdevice"_a, "index"_a, "subindex"_a, "complete_access"_a, "data"_a, "timeout_us"_a)
-
+        //sii
+        .def("siifind", &SOEM_wrapper::siifind, "subdevice"_a, "cat"_a)
+        .def("siigetbyte", &SOEM_wrapper::siigetbyte, "subdevice"_a, "address"_a)
         //iomap
         .def_prop_ro("iomap", [](SOEM_wrapper &wrapper){
             size_t shape[1] = {wrapper.iomap.size()};
