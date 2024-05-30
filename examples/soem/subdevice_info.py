@@ -51,6 +51,26 @@ def subdevice_info(ifname: str):
         else:
             break
 
+    # request and verify PREOP state
+    main_device.subdevices[0].state = pyecm.soem.ec_state.PRE_OP
+    main_device.writestate(subdevice=0)
+    lowest_state_found = main_device.statecheck(
+        subdevice=0,
+        reqstate=pyecm.soem.ec_state.PRE_OP,
+        timeout_us=2000,
+    )
+    assert (
+        lowest_state_found == pyecm.soem.ec_state.PRE_OP
+    ), f"not all subdevices reached PREOP! lowest state found: {pyecm.soem.ec_state(lowest_state_found).name}"
+    print(f"reached state: {pyecm.soem.ec_state(lowest_state_found).name}")
+
+    # create iomap
+    required_iomap_size_bytes = main_device.config_overlap_map()
+    assert (
+        required_iomap_size_bytes <= main_device.iomap.size  # type: ignore
+    ), f"io map size is too small. required size: {required_iomap_size_bytes}. configured size: {main_device.iomap.size}"  # type: ignore
+    print(f"successfully configured iomap. iomap size: {required_iomap_size_bytes}")
+
     # config dc
     dc_subdevice_found = main_device.configdc()
     if dc_subdevice_found:
@@ -65,7 +85,49 @@ def subdevice_info(ifname: str):
         print(f"Subdevice error. {error.subdevice}, type: {error.Etype}")
         # TODO: print more information here
 
-    main_device.statecheck(0, reqstate=pyecm.soem.ec_state.SAFE_OP, timeout_us=3_000_000)
+    main_device.statecheck(0, reqstate=pyecm.soem.ec_state.SAFE_OP, timeout_us=10_000_000)
+    if main_device.subdevices[0].state != pyecm.soem.ec_state.SAFE_OP:
+
+        main_device.readstate()
+        for i, subdevice in enumerate(main_device.subdevices[: main_device.subdevice_count + 1]):
+            if i != 0:
+                print(
+                    f"Subdevice {i}, state: {subdevice.state}, statuscode: {subdevice.ALstatuscode}"
+                )
+        raise RuntimeError(
+            f"Not all subdevices reached SAFEOP. Lowest state: {main_device.subdevices[0].state}"
+        )
+
+    main_device.readstate()
+
+    for i, subdevice in enumerate(main_device.subdevices[: main_device.subdevice_count + 1]):
+        if i != 0:
+
+            print(
+                f"Subdevice:{i}\n Name:{subdevice.name}\n Output size: {subdevice.Obits}bits\n Input size: {subdevice.Ibits}bits\n State: {subdevice.state}\n Delay: {subdevice.pdelay}[ns]\n Has DC: {subdevice.hasdc}"
+            )
+            if subdevice.hasdc:
+                print(f" DCParentport:{subdevice.parentport}")
+            print(
+                f" Activeports:{bool(subdevice.activeports & 0x01)}.{bool(subdevice.activeports & 0x02)}.{bool(subdevice.activeports & 0x04)}.{bool(subdevice.activeports & 0x08)}"
+            )
+            print(f" Configured address: {subdevice.configadr}")
+            print(f" Man: {subdevice.eep_man} ID: {subdevice.eep_id} Rev: {subdevice.eep_rev}")
+            for j, sm in enumerate(subdevice.SM):
+                if sm.StartAddr > 0:
+                    print(
+                        f" SM{j} A:{sm.StartAddr:04x} L:{sm.SMlength:04d} F:{sm.SMflags:08x} Type:{subdevice.SMtype[j]}"
+                    )
+            for j in range(subdevice.FMMUunused):
+                print(
+                    f" FMMU{j} Ls:{subdevice.FMMU[j].LogStart:08x} Ll:{subdevice.FMMU[j].LogLength:04d} Lsb:{subdevice.FMMU[j].LogStartbit} Leb:{subdevice.FMMU[j].LogEndbit} Ps:{subdevice.FMMU[j].PhysStart:04x} Psb:{subdevice.FMMU[j].PhysStartBit} Ty:{subdevice.FMMU[j].FMMUtype:02x} Act:{subdevice.FMMU[j].FMMUactive:02x}"
+                )
+            print(
+                f" FMMUfunc 0:{subdevice.FMMU0func} 1:{subdevice.FMMU1func} 2:{subdevice.FMMU2func} 3:{subdevice.FMMU3func}"
+            )
+            print(
+                f" MBX length wr: {subdevice.mbx_l} rd: {subdevice.mbx_rl} MBX protocols : {subdevice.mbx_proto:02x}"
+            )
 
 
 if __name__ == "__main__":

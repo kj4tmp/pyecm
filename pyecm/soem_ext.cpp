@@ -233,70 +233,109 @@ NB_MODULE(soem_ext, m)
         }
         ec_free_adapters(adapters);
         return adapter_list; });
+    
+    nb::class_<ec_smt>(m, "ec_smt")
+        .def_ro("StartAddr", &ec_smt::StartAddr)
+        .def_ro("SMlength", &ec_smt::SMlength)
+        .def_ro("SMflags", &ec_smt::SMflags);
+    nb::class_<ec_fmmut>(m, "ec_fmmut")
+        .def_ro("LogStart", &ec_fmmut::LogStart)
+        .def_ro("LogLength", &ec_fmmut::LogLength)
+        .def_ro("LogStartbit", &ec_fmmut::LogStartbit)
+        .def_ro("LogEndbit", &ec_fmmut::LogEndbit)
+        .def_ro("PhysStart", &ec_fmmut::PhysStart)
+        .def_ro("PhysStartBit", &ec_fmmut::PhysStartBit)
+        .def_ro("FMMUtype", &ec_fmmut::FMMUtype)
+        .def_ro("FMMUactive", &ec_fmmut::FMMUactive)
+        .def_ro("unused1", &ec_fmmut::unused1)
+        .def_ro("unused2", &ec_fmmut::unused2);
 
     // TODO: fill in
     nb::class_<ec_slavet>(m, "SubDevice")
         .def(nb::init<>())
         .def_rw("state", &ec_slavet::state)
-        .def_rw("ALstatuscode", &ec_slavet::ALstatuscode)
-        .def_rw("configadr", &ec_slavet::configadr)
-        .def_rw("aliasadr", &ec_slavet::aliasadr)
-        .def_rw("eep_man", &ec_slavet::eep_man)
-        .def_rw("eep_id", &ec_slavet::eep_id)
-        .def_rw("eep_rev", &ec_slavet::eep_rev)
-        .def_rw("Itype", &ec_slavet::Itype)
-        .def_rw("Dtype", &ec_slavet::Dtype)
-        .def_rw("Obits", &ec_slavet::Obits)
-        .def_rw("Obytes", &ec_slavet::Obytes)
+        .def_ro("ALstatuscode", &ec_slavet::ALstatuscode)
+        .def_ro("configadr", &ec_slavet::configadr)
+        .def_ro("aliasadr", &ec_slavet::aliasadr)
+        .def_ro("eep_man", &ec_slavet::eep_man)
+        .def_ro("eep_id", &ec_slavet::eep_id)
+        .def_ro("eep_rev", &ec_slavet::eep_rev)
+        .def_ro("Itype", &ec_slavet::Itype)
+        .def_ro("Dtype", &ec_slavet::Dtype)
+        .def_ro("Obits", &ec_slavet::Obits)
+        .def_ro("Obytes", &ec_slavet::Obytes)
         .def_ro("outputs", &ec_slavet::outputs)
-        .def_rw("Ostartbit", &ec_slavet::Ostartbit)
-        .def_rw("Ibits", &ec_slavet::Ibits)
-        .def_rw("Ibytes", &ec_slavet::Ibytes)
+        .def_ro("Ostartbit", &ec_slavet::Ostartbit)
+        .def_ro("Ibits", &ec_slavet::Ibits)
+        .def_ro("Ibytes", &ec_slavet::Ibytes)
         .def_ro("inputs", &ec_slavet::inputs)
-        .def_rw("Istartbit", &ec_slavet::Istartbit)
-        //.def_rw("SM", &ec_slavet::SM)
-        //.def_rw("SMtype", &ec_slavet::SMtype)
+        .def_ro("Istartbit", &ec_slavet::Istartbit)
+        .def_prop_ro("SM", [](ec_slavet &subdevice){
+            nb::typed<nb::list, ec_smt> sm_list;
+
+            for (int i = 0; i < EC_MAXSM; i++){
+                sm_list.append(subdevice.SM[i]);
+            }
+            return sm_list;
+        })
+        .def_prop_ro("SMtype", [](ec_slavet &subdevice){
+            nb::typed<nb::list, uint8_t> smtype_list;
+
+            for (int i = 0; i < EC_MAXSM; i++){
+                smtype_list.append(subdevice.SMtype[i]);
+            }
+            return smtype_list;
+        })
+        .def_prop_ro("FMMU", [](ec_slavet &subdevice){
+            nb::typed<nb::list, ec_fmmut> fmmu_list;
+
+            for (int i = 0; i < EC_MAXFMMU; i++){
+                fmmu_list.append(subdevice.FMMU[i]);
+            }
+            return fmmu_list;
+        })
         //.def_rw("FMMU", &ec_slavet::FMMU)
-        .def_rw("FMMU0func", &ec_slavet::FMMU0func)
-        .def_rw("FMMU1func", &ec_slavet::FMMU1func)
-        .def_rw("FMMU2func", &ec_slavet::FMMU2func)
-        .def_rw("FMMU3func", &ec_slavet::FMMU3func)
-        .def_rw("mbx_l", &ec_slavet::mbx_l)
-        .def_rw("mbx_wo", &ec_slavet::mbx_wo)
-        .def_rw("mbx_rl", &ec_slavet::mbx_rl)
-        .def_rw("mbx_ro", &ec_slavet::mbx_ro)
-        .def_rw("mbx_proto", &ec_slavet::mbx_proto)
-        .def_rw("mbx_cnt", &ec_slavet::mbx_cnt)
-        .def_rw("hasdc", &ec_slavet::hasdc)
-        .def_rw("ptype", &ec_slavet::ptype)
-        .def_rw("topology", &ec_slavet::topology)
-        .def_rw("activeports", &ec_slavet::activeports)
-        .def_rw("consumedports", &ec_slavet::consumedports)
-        .def_rw("parent", &ec_slavet::parent)
-        .def_rw("parentport", &ec_slavet::parentport)
-        .def_rw("entryport", &ec_slavet::entryport)
-        .def_rw("DCrtA", &ec_slavet::DCrtA)
-        .def_rw("DCrtB", &ec_slavet::DCrtB)
-        .def_rw("DCrtC", &ec_slavet::DCrtC)
-        .def_rw("DCrtD", &ec_slavet::DCrtD)
-        .def_rw("pdelay", &ec_slavet::pdelay)
-        .def_rw("DCnext", &ec_slavet::DCnext)
-        .def_rw("DCprevious", &ec_slavet::DCprevious)
-        .def_rw("DCcycle", &ec_slavet::DCcycle)
-        .def_rw("DCshift", &ec_slavet::DCshift)
-        .def_rw("DCactive", &ec_slavet::DCactive)
-        .def_rw("configindex", &ec_slavet::configindex)
-        .def_rw("SIIindex", &ec_slavet::SIIindex)
-        .def_rw("eep_8byte", &ec_slavet::eep_8byte)
-        .def_rw("eep_pdi", &ec_slavet::eep_pdi)
-        .def_rw("CoEdetails", &ec_slavet::CoEdetails)
-        .def_rw("FoEdetails", &ec_slavet::FoEdetails)
-        .def_rw("EoEdetails", &ec_slavet::EoEdetails)
-        .def_rw("SoEdetails", &ec_slavet::SoEdetails)
-        .def_rw("Ebuscurrent", &ec_slavet::Ebuscurrent)
-        .def_rw("blockLRW", &ec_slavet::blockLRW)
-        .def_rw("group", &ec_slavet::group)
-        .def_rw("FMMUunused", &ec_slavet::FMMUunused)
+        .def_ro("FMMU0func", &ec_slavet::FMMU0func)
+        .def_ro("FMMU1func", &ec_slavet::FMMU1func)
+        .def_ro("FMMU2func", &ec_slavet::FMMU2func)
+        .def_ro("FMMU3func", &ec_slavet::FMMU3func)
+        .def_ro("mbx_l", &ec_slavet::mbx_l)
+        .def_ro("mbx_wo", &ec_slavet::mbx_wo)
+        .def_ro("mbx_rl", &ec_slavet::mbx_rl)
+        .def_ro("mbx_ro", &ec_slavet::mbx_ro)
+        .def_ro("mbx_proto", &ec_slavet::mbx_proto)
+        .def_ro("mbx_cnt", &ec_slavet::mbx_cnt)
+        .def_prop_ro("hasdc", [](ec_slavet &subdevice){
+            return (bool)subdevice.hasdc;})
+        .def_ro("ptype", &ec_slavet::ptype)
+        .def_ro("topology", &ec_slavet::topology)
+        .def_ro("activeports", &ec_slavet::activeports)
+        .def_ro("consumedports", &ec_slavet::consumedports)
+        .def_ro("parent", &ec_slavet::parent)
+        .def_ro("parentport", &ec_slavet::parentport)
+        .def_ro("entryport", &ec_slavet::entryport)
+        .def_ro("DCrtA", &ec_slavet::DCrtA)
+        .def_ro("DCrtB", &ec_slavet::DCrtB)
+        .def_ro("DCrtC", &ec_slavet::DCrtC)
+        .def_ro("DCrtD", &ec_slavet::DCrtD)
+        .def_ro("pdelay", &ec_slavet::pdelay)
+        .def_ro("DCnext", &ec_slavet::DCnext)
+        .def_ro("DCprevious", &ec_slavet::DCprevious)
+        .def_ro("DCcycle", &ec_slavet::DCcycle)
+        .def_ro("DCshift", &ec_slavet::DCshift)
+        .def_ro("DCactive", &ec_slavet::DCactive)
+        .def_ro("configindex", &ec_slavet::configindex)
+        .def_ro("SIIindex", &ec_slavet::SIIindex)
+        .def_ro("eep_8byte", &ec_slavet::eep_8byte)
+        .def_ro("eep_pdi", &ec_slavet::eep_pdi)
+        .def_ro("CoEdetails", &ec_slavet::CoEdetails)
+        .def_ro("FoEdetails", &ec_slavet::FoEdetails)
+        .def_ro("EoEdetails", &ec_slavet::EoEdetails)
+        .def_ro("SoEdetails", &ec_slavet::SoEdetails)
+        .def_ro("Ebuscurrent", &ec_slavet::Ebuscurrent)
+        .def_ro("blockLRW", &ec_slavet::blockLRW)
+        .def_ro("group", &ec_slavet::group)
+        .def_ro("FMMUunused", &ec_slavet::FMMUunused)
         .def_prop_rw("islost", [](ec_slavet &subdevice){
             return (bool)subdevice.islost;}, 
             [](ec_slavet &subdevice, bool value){
