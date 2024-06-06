@@ -3,6 +3,7 @@ A re-write of SOEM example slaveinfo.c in python.
 """
 
 import argparse
+import struct
 import sys
 
 import pyecm
@@ -137,23 +138,33 @@ def subdevice_info(ifname: str):
                 if (main_device.siigetbyte(i, siigen + 0x0D) & 0x02) > 0:
                     main_device.subdevices[i].blockLRW = 1
                     main_device.subdevices[0].blockLRW += 1
-                print(f"attempting {main_device.siigetbyte(i, siigen + 0x0E)}")
-                main_device.subdevices[i].Ebuscurrent = main_device.siigetbyte(i, siigen + 0x0E)
-                print(f"attempting {main_device.siigetbyte(i, siigen + 0x0F) << 8}")
-                # TODO: handle second byte for ebus current
-                # main_device.subdevices[i].Ebuscurrent = (
-                #     main_device.siigetbyte(i, siigen + 0x0F) << 8
-                # )
-                # + (
-                #     main_device.siigetbyte(i, siigen + 0x0F) << 8
-                # )
+                main_device.subdevices[i].Ebuscurrent = struct.unpack(
+                    "<h",
+                    bytearray(
+                        [
+                            main_device.siigetbyte(i, siigen + 0x0E),
+                            main_device.siigetbyte(i, siigen + 0x0F),
+                        ]
+                    ),
+                )[0]
                 main_device.subdevices[0].Ebuscurrent += main_device.subdevices[i].Ebuscurrent
                 print(
-                    f"CoE details: {main_device.subdevices[i].CoEdetails:02x} FoE details: {main_device.subdevices[i].FoEdetails:02x} EoE details: {main_device.subdevices[i].EoEdetails:02x} SoE details: {main_device.subdevices[i].SoEdetails:02x}"
+                    f" CoE details: {main_device.subdevices[i].CoEdetails:02x} FoE details: {main_device.subdevices[i].FoEdetails:02x} EoE details: {main_device.subdevices[i].EoEdetails:02x} SoE details: {main_device.subdevices[i].SoEdetails:02x}"
                 )
                 print(
-                    f"Ebus current: {main_device.subdevices[i].Ebuscurrent}[mA]\nonly LRD/LWR: {main_device.subdevices[i].blockLRW}"
+                    f" Ebus current: {main_device.subdevices[i].Ebuscurrent}[mA]\n only LRD/LWR: {main_device.subdevices[i].blockLRW}"
                 )
+            if main_device.subdevices[i].mbx_proto & 0x0004:  # ECT_MBXPROT_COE
+                wkc, od_list = main_device.readODlist(i)
+                if wkc:
+                    print(f" COE Object Description Found, {od_list.Entries} entries")
+                    for j in range(od_list.Entries):
+                        wkc, od_list = main_device.readODdescription(j, od_list)
+                        print(f"  index: 0x{od_list.Index[j]:04x} name: {od_list.Name[j]}")
+                        print(f"   data_type: {od_list.DataType[j]}")
+                        print(f"   object_code: {od_list.ObjectCode[j]}")
+                        print(f"   max_subindexes: 0x{od_list.MaxSub[j]:02x} / {od_list.MaxSub[j]}")
+                # TODO: COE info
 
 
 if __name__ == "__main__":
