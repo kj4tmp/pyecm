@@ -160,6 +160,12 @@ class SOEM_wrapper {
         wkc = ecx_readODdescription(&this->context, item, &ODlist);
         return std::make_tuple(wkc, ODlist);
     }
+    auto readOE(uint16 item, ec_ODlistt ODlist){
+        int wkc;
+        ec_OElistt oe_list;
+        wkc = ecx_readOE(&this->context, item, &ODlist, &oe_list);
+        return std::make_tuple(wkc, oe_list);
+    }
     uint16 siifind(uint16 subdevice, uint16 cat){
         return ecx_siifind(&this->context, subdevice, cat);
     }
@@ -179,7 +185,49 @@ NB_MODULE(soem_ext, m)
         { return a + b; },
         "a"_a, "b"_a);
 
-    // ethercatcoe.c
+    // ethercatcoe.h
+    nb::class_<ec_OElistt>(m, "ec_OEListt")
+        .def_ro("Entries", &ec_OElistt::Entries)
+        .def_prop_ro("ValueInfo", [](ec_OElistt &oe_list){
+            nb::typed<nb::list, uint8_t> vi_list;
+
+            for (int i = 0; i < oe_list.Entries; i++){
+                vi_list.append(oe_list.ValueInfo[i]);
+            }
+            return vi_list;
+        })
+        .def_prop_ro("DataType", [](ec_OElistt &oe_list){
+            nb::typed<nb::list, uint16_t> dt_list;
+
+            for (int i = 0; i < oe_list.Entries; i++){
+                dt_list.append(oe_list.DataType[i]);
+            }
+            return dt_list;
+        })
+        .def_prop_ro("BitLength", [](ec_OElistt &oe_list){
+            nb::typed<nb::list, uint16_t> bl_list;
+
+            for (int i = 0; i < oe_list.Entries; i++){
+                bl_list.append(oe_list.BitLength[i]);
+            }
+            return bl_list;
+        })
+        .def_prop_ro("ObjAccess", [](ec_OElistt &oe_list){
+            nb::typed<nb::list, uint8_t> oa_list;
+
+            for (int i = 0; i < oe_list.Entries; i++){
+                oa_list.append(oe_list.ObjAccess[i]);
+            }
+            return oa_list;
+        })
+        .def_prop_ro("Name", [](ec_OElistt &oe_list){
+            nb::typed<nb::list, nb::str> name_list;
+
+            for (int i = 0; i < oe_list.Entries; i++){
+                name_list.append(nb::str(oe_list.Name[i]));
+            }
+            return name_list;
+        });
     nb::class_<ec_ODlistt>(m, "ec_ODListt")
         .def_ro("subdevice", &ec_ODlistt::Slave)
         .def_ro("Entries", &ec_ODlistt::Entries)
@@ -219,7 +267,7 @@ NB_MODULE(soem_ext, m)
             nb::typed<nb::list, nb::str> name_list;
 
             for (int i = 0; i < od_list.Entries; i++){
-                name_list.append(nb::str(od_list.Name[i]));
+                name_list.append(nb::bytes(od_list.Name[i]));
             }
             return name_list;
         });
@@ -504,6 +552,7 @@ NB_MODULE(soem_ext, m)
         .def("SDOwrite", &SOEM_wrapper::SDOwrite, "subdevice"_a, "index"_a, "subindex"_a, "complete_access"_a, "data"_a, "timeout_us"_a)
         .def("readODlist", &SOEM_wrapper::readODlist, "subdevice"_a)
         .def("readODdescription", &SOEM_wrapper::readODdescription, "item"_a, "ODlist"_a)
+        .def("readOE", &SOEM_wrapper::readOE, "item"_a, "ODlist"_a)
         //sii
         .def("siifind", &SOEM_wrapper::siifind, "subdevice"_a, "cat"_a)
         .def("siigetbyte", &SOEM_wrapper::siigetbyte, "subdevice"_a, "address"_a)

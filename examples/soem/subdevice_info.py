@@ -160,10 +160,33 @@ def subdevice_info(ifname: str):
                     print(f" COE Object Description Found, {od_list.Entries} entries")
                     for j in range(od_list.Entries):
                         wkc, od_list = main_device.readODdescription(j, od_list)
-                        print(f"  index: 0x{od_list.Index[j]:04x} name: {od_list.Name[j]}")
-                        print(f"   data_type: {od_list.DataType[j]}")
-                        print(f"   object_code: {od_list.ObjectCode[j]}")
-                        print(f"   max_subindexes: 0x{od_list.MaxSub[j]:02x} / {od_list.MaxSub[j]}")
+                        try:
+                            print(f"  index: 0x{od_list.Index[j]:04x} name: {od_list.Name[j]}")
+                        except RuntimeError:
+                            print("error")
+                        # print(
+                        #     f"   data_type: {od_list.DataType[j]}, object_code: {od_list.ObjectCode[j]}, max_subindexes: 0x{od_list.MaxSub[j]:02x} / {od_list.MaxSub[j]}"
+                        # )
+                        wkc, oe_list = main_device.readOE(j, od_list)
+                        if od_list.ObjectCode[j] != 0x0007:  # OTYPE_VAR
+                            wkc, bytes_read, max_sub_res = main_device.SDOread(
+                                subdevice=i,
+                                index=od_list.Index[j],
+                                subindex=0,
+                                complete_access=False,
+                                size=1,
+                                timeout_us=100_000,
+                            )
+                            max_sub = max_sub_res[0]
+                        else:
+                            max_sub = od_list.MaxSub[j]
+                        # for k in range(max_sub):
+                        #     if oe_list.DataType[k] > 0 and oe_list.BitLength[k] > 0:
+                        #         print(f"   {od_list.Name[j]}:{oe_list.Name[k]}")
+                        #         print(
+                        #             f"    data_type: {oe_list.DataType[k]}, bit_length: {oe_list.BitLength[k]}, obj_access: {oe_list.ObjAccess[k]}"
+                        #         )
+
                 # TODO: COE info
 
 
