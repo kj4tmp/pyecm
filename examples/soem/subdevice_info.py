@@ -160,13 +160,10 @@ def subdevice_info(ifname: str):
                     print(f" COE Object Description Found, {od_list.Entries} entries")
                     for j in range(od_list.Entries):
                         wkc, od_list = main_device.readODdescription(j, od_list)
-                        try:
-                            print(f"  index: 0x{od_list.Index[j]:04x} name: {od_list.Name[j]}")
-                        except RuntimeError:
-                            print("error")
-                        # print(
-                        #     f"   data_type: {od_list.DataType[j]}, object_code: {od_list.ObjectCode[j]}, max_subindexes: 0x{od_list.MaxSub[j]:02x} / {od_list.MaxSub[j]}"
-                        # )
+                        print(f"  index: 0x{od_list.Index[j]:04x} name: {od_list.Name[j]}")
+                        print(
+                            f"   data_type: {od_list.DataType[j]}, object_code: {od_list.ObjectCode[j]}, max_subindexes: 0x{od_list.MaxSub[j]:02x} / {od_list.MaxSub[j]}"
+                        )
                         wkc, oe_list = main_device.readOE(j, od_list)
                         if od_list.ObjectCode[j] != 0x0007:  # OTYPE_VAR
                             wkc, bytes_read, max_sub_res = main_device.SDOread(
@@ -180,14 +177,15 @@ def subdevice_info(ifname: str):
                             max_sub = max_sub_res[0]
                         else:
                             max_sub = od_list.MaxSub[j]
-                        # for k in range(max_sub):
-                        #     if oe_list.DataType[k] > 0 and oe_list.BitLength[k] > 0:
-                        #         print(f"   {od_list.Name[j]}:{oe_list.Name[k]}")
-                        #         print(
-                        #             f"    data_type: {oe_list.DataType[k]}, bit_length: {oe_list.BitLength[k]}, obj_access: {oe_list.ObjAccess[k]}"
-                        #         )
+                        for k in range(max_sub):
+                            if oe_list.DataType[k] > 0 and oe_list.BitLength[k] > 0:
+                                print(f"   {od_list.Name[j]}:{oe_list.Name[k]}")
+                                print(
+                                    f"    data_type: {oe_list.DataType[k]}, bit_length: {oe_list.BitLength[k]}, obj_access: {oe_list.ObjAccess[k]}"
+                                )
 
-                # TODO: COE info
+                # TODO: si_map_sdo part of subdevice_info example
+                # TODO: so_map_sii part of subdevice_info example
 
 
 if __name__ == "__main__":

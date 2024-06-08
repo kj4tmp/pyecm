@@ -151,7 +151,7 @@ class SOEM_wrapper {
     }
     auto readODlist(uint16 subdevice){
         int wkc;
-        ec_ODlistt ODlist;
+        ec_ODlistt ODlist = {};
         wkc = ecx_readODlist(&this->context, subdevice, &ODlist);
         return std::make_tuple(wkc, ODlist);
     }
@@ -162,7 +162,7 @@ class SOEM_wrapper {
     }
     auto readOE(uint16 item, ec_ODlistt ODlist){
         int wkc;
-        ec_OElistt oe_list;
+        ec_OElistt oe_list = {};
         wkc = ecx_readOE(&this->context, item, &ODlist, &oe_list);
         return std::make_tuple(wkc, oe_list);
     }
@@ -267,7 +267,7 @@ NB_MODULE(soem_ext, m)
             nb::typed<nb::list, nb::str> name_list;
 
             for (int i = 0; i < od_list.Entries; i++){
-                name_list.append(nb::bytes(od_list.Name[i]));
+                name_list.append(nb::str(od_list.Name[i]));
             }
             return name_list;
         });
