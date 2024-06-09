@@ -1,4 +1,6 @@
 # TODO: hotconnect support
+# TODO: initcmds from ENI
+# TODO: process data from ENI
 
 import logging
 
@@ -134,6 +136,10 @@ class MainDevice:
                         f"Bus subdevice {subdevice_index} revision number (0x{bus_subdevice.eep_rev:08x}) does not match ENI (0x{exp_rev_num:08x})"
                     )
                 )
+        return Success(None)
+
+    def config_map(self) -> Result[None, Exception]:
+        # TODO: config map
         return Success(None)
 
     @staticmethod
