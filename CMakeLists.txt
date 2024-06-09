@@ -45,7 +45,7 @@ nanobind_add_module(
   soem_ext
   STABLE_ABI 
   NB_STATIC
-  pyecm/soem_ext.cpp
+  pyecm/soem/soem_ext.cpp
 )
 target_link_libraries(soem_ext PUBLIC soem)
 

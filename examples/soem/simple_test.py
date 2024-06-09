@@ -36,7 +36,7 @@ def maintainance_task(main_device: SOEM, expected_wkc: int):
                         print(
                             f"subdevice {subdevice_index}, name: {subdevice.name} in SAFE_OP + ERROR, attempting ACK..."
                         )
-                        main_device.get_subdevice(subdevice_index).state = (
+                        main_device.subdevices[subdevice_index].state = (
                             ec_state.SAFE_OP + ec_state.ACK
                         )
                         main_device.writestate(subdevice_index)
@@ -44,7 +44,7 @@ def maintainance_task(main_device: SOEM, expected_wkc: int):
                         print(
                             f"subdevice {subdevice_index}, name: {subdevice.name} in SAFE_OP, attempting OP..."
                         )
-                        main_device.get_subdevice(subdevice_index).state = ec_state.OPERATIONAL
+                        main_device.subdevices[subdevice_index].state = ec_state.OPERATIONAL
                         main_device.writestate(subdevice_index)
                     elif subdevice.state > ec_state.NONE:
                         if main_device.reconfig_subdevice(subdevice_index, timeout_us=10000):
@@ -58,14 +58,14 @@ def maintainance_task(main_device: SOEM, expected_wkc: int):
                             )
                             == ec_state.NONE
                         ):
-                            main_device.get_subdevice(subdevice_index).islost = True
+                            main_device.subdevices[subdevice_index].islost = True
                             print(f"subdevice {subdevice_index}, name: {subdevice.name} lost")
                 if subdevice.islost:
                     if subdevice.state == ec_state.NONE:
                         if main_device.recover_subdevice(subdevice_index, timeout_us=10000):
                             print(f"subdevice {subdevice_index}, name: {subdevice.name} recovered")
                     else:
-                        main_device.get_subdevice(subdevice_index).islost = False
+                        main_device.subdevices[subdevice_index].islost = False
                         print(f"subdevice {subdevice_index}, name: {subdevice.name} found")
 
             if not unhealthy_subdevice_found:

@@ -51,3 +51,9 @@ archs = ["auto64"] # skip 32-bit on windows since stub generation is broken
 testpaths = [
     "tests",
 ]
+
+[tool.mypy]
+plugins = ["returns.contrib.mypy.returns_plugin"]
+exclude = [
+    "ext/",
+]
