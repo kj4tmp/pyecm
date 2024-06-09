@@ -120,7 +120,8 @@ class SOEM:
 
     def poperror(self) -> tuple[bool, ec_errort]: ...
 
-    def init_redundant(self, ifname: str, if2name: str) -> int: ...
+    def init_redundant(self, ifname: str, if2name: str) -> int:
+        """Initialize SOEM library with cable redundancy. Returns > 0 if OK."""
 
     def readstate(self) -> int: ...
 
@@ -132,9 +133,13 @@ class SOEM:
 
     def receive_processdata_group(self, group: int, timeout_us: int) -> int: ...
 
-    def init(self, ifname: str) -> int: ...
+    def init(self, ifname: str) -> int:
+        """Initialize SOEM library. Returns > 0 if OK."""
 
-    def config_init(self) -> int: ...
+    def config_init(self) -> int:
+        """
+        Enumerate and request INIT state for all subdevices. Returns workcounter of subdevice discovery datagram which is the number of subdevices found.
+        """
 
     def config_overlap_map(self) -> int: ...
 
