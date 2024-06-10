@@ -210,7 +210,7 @@ class MainDevice:
             req_iomap_size_bytes <= self.estimated_iomap_size_bytes
         ), f"Required iomap size ({req_iomap_size_bytes} B) exceeds estimated iomap size ({self.estimated_iomap_size_bytes} B). seg fault likely!"
 
-    def get_subdevice_state(self, subdevice: int) -> Result[int, ValueError]:
+    def get_state(self, subdevice: int) -> Result[int, ValueError]:
         """Get the last read state of a subdevice.
         This function does not actually communicate with the subdevices.
         The subdevice states should be actually read by self.read_states.
@@ -218,7 +218,7 @@ class MainDevice:
         if subdevice > self.soem.subdevice_count or subdevice < 0:
             return Failure(
                 ValueError(
-                    f"Attempted to write state to subdevice ({subdevice}) outside of available subdvices (0-{self.soem.subdevice_count})"
+                    f"Attempted to read state of subdevice ({subdevice}) outside of available subdvices (0-{self.soem.subdevice_count})"
                 )
             )
         return Success(ALStatus(self.soem.subdevices[subdevice].state))
