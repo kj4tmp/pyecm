@@ -220,8 +220,8 @@ class CCS(IntEnum):
 
 
 class SDOCommand(BaseXmlModel):
-    fixed: bool | None = element(tag="Fixed", default=None)
-    complete_access: bool | None = element(tag="CompleteAccess", default=None)
+    fixed: bool | None = attr(name="Fixed", default=None)
+    complete_access: bool | None = attr(tag="CompleteAccess", default=None)
     transitions: Annotated[list[Transition], Len(min_length=1)] = element(tag="Transition")
     comment: str | None = element(tag="Comment", default=None)
     timeout_ms: int = element(tag="Timeout")
@@ -358,7 +358,7 @@ class InitECatCmds(BaseXmlModel):
 class SubDeviceInfo(BaseXmlModel):
     name: str = element(tag="Name")
     physical_address: int | None = element(tag="PhysAddr", default=None)
-    auto_increment_addres: int | None = element(tag="AutoIncAddr", default=None)
+    auto_increment_address: int | None = element(tag="AutoIncAddr", default=None)
     physics: str | None = element(tag="Physics", default=None)
     vendor_id: int = element(tag="VendorId")
     product_code: int = element(tag="ProductCode")

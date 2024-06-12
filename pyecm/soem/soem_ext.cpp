@@ -3,6 +3,7 @@
 #include <ethercat.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/tuple.h>
+#include <nanobind/stl/function.h>
 namespace nb = nanobind;
 
 using namespace nb::literals;
@@ -132,21 +133,14 @@ class SOEM_wrapper {
     void dcsync01(uint16 subdevice, boolean act, uint32 CyclTime0_ns, uint32 CyclTime1_ns, int32 CyclShift_ns){
         return ecx_dcsync01(&this->context, subdevice, act, CyclTime0_ns, CyclTime1_ns, CyclShift_ns);
     }
-    auto SDOread(uint16 subdevice, uint16 index, uint8 subindex, boolean CA, int size, int timeout_us){
-        if (size <= 0) {
-            throw std::invalid_argument("size may not be <= 0.");
-        }
+    auto SDOread(uint16 subdevice, uint16 index, uint8 subindex, boolean CA, uint16 size, int timeout_us){
         int wkc;
-        BytesVector *buffer = new BytesVector(size, 0);
-        nb::capsule owner(buffer, [](void *p) noexcept {
-            delete (BytesVector *) p;
-        });
+        uint8_t *buffer[size] = {};
         int bytes_read = size;
-        wkc = ecx_SDOread(&this->context, subdevice, index, subindex, CA, &bytes_read, buffer->data(), timeout_us);
-        size_t shape[1] = {buffer->size()};
-        return std::make_tuple(wkc, bytes_read, BytesArray(buffer->data(), 1, shape, owner));
+        wkc = ecx_SDOread(&this->context, subdevice, index, subindex, CA, &bytes_read, buffer, timeout_us);
+        return std::make_tuple(wkc, nb::bytes(buffer, bytes_read));
     }
-    int SDOwrite(uint16 subdevice, uint16 Index, uint8 SubIndex, boolean CA, BytesArray data, int Timeout_us){
+    int SDOwrite(uint16 subdevice, uint16 Index, uint8 SubIndex, bool CA, nb::bytes data, int Timeout_us){
         return ecx_SDOwrite(&this->context, subdevice, Index, SubIndex, CA, data.size(), data.data(), Timeout_us);
     }
     auto readODlist(uint16 subdevice){
@@ -450,6 +444,11 @@ NB_MODULE(soem_ext, m)
             })
         //.def_rw("PO2SOconfig", &ec_slavet::PO2SOconfig)
         //.def_rw("PO2SOconfigx", &ec_slavet::PO2SOconfigx)
+        // .def_prop_rw("PO2SOconfigx", [](ec_slavet &subdevice){
+        //     return (std::function<int(ecx_contextt*, uint16_t)>)subdevice.PO2SOconfigx;
+        // }, [](ec_slavet &subdevice, std::function<int(ecx_contextt*, uint16_t)> &f){
+        //     subdevice.PO2SOconfigx = f;
+        // })
         .def_ro("name", &ec_slavet::name);
 
     // TODO: fill in

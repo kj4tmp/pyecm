@@ -5,13 +5,15 @@
 # TODO: EC_NOFRAME Define
 
 import logging
+from collections import namedtuple
 from enum import IntEnum
 from typing import Annotated
 
 from annotated_types import Ge
 from returns.result import Failure, Result, Success
 
-from pyecm.eni import ENI
+from pyecm.eni import ENI, SDOCommand, Transition
+from pyecm.eni import SubDevice as ENISubDevice
 from pyecm.network_adapters import AdapterNotFoundError, validate_network_adapter_name
 from pyecm.soem.soem_ext import SOEM
 
@@ -35,6 +37,10 @@ class BusENIMismatchError(Exception):
 
 
 class NoFrameError(Exception):
+    pass
+
+
+class WorkingCounterError(Exception):
     pass
 
 
@@ -94,11 +100,18 @@ class MainDevice:
     EtherCAT MainDevice.
     """
 
-    def __init__(self, main_adapter_name: str, eni: ENI, red_adapter_name: str = ""):
+    def __init__(
+        self,
+        main_adapter_name: str,
+        eni: ENI,
+        red_adapter_name: str = "",
+        sdo_timeout_ms: int = 2000,
+    ):
 
         self.main_adapter_name = main_adapter_name
         self.eni = eni
         self.red_adapter_name = red_adapter_name
+        self.sdo_timeout_ms = sdo_timeout_ms
 
         maxgroup = max(len(self.eni.config.cyclics), 1)
         self.estimated_iomap_size_bytes: int = self._get_soem_iomap_size_bytes(eni=self.eni)
@@ -108,6 +121,9 @@ class MainDevice:
             iomap_size_bytes=self.estimated_iomap_size_bytes,
             manualstatechange=True,
         )
+
+        self._init_sdo_cmds: dict[int, list[SDOCommand]] = {}
+        self._parse_init_cmds()
 
     def init_verify_network(
         self,
@@ -290,6 +306,27 @@ class MainDevice:
     def send_process_data(self, group: int = 0) -> None:
         self.soem.send_overlap_processdata_group(group=group)
 
+    def sdo_write(
+        self, subdevice: int, cmd: SDOCommand
+    ) -> Result[int, WorkingCounterError | ValueError]:
+        if cmd.disabled:
+            return Success(0)
+        if cmd.data is None:
+            return Failure(ValueError("SDOCommand has no data."))
+        wkc = self.soem.SDOwrite(
+            subdevice=subdevice,
+            index=cmd.index,
+            subindex=cmd.subindex,
+            complete_access=bool(cmd.complete_access),
+            data=cmd.data,
+            timeout_us=(
+                self.sdo_timeout_ms * 1000 if not cmd.timeout_ms else cmd.timeout_ms * 1000
+            ),
+        )
+        if wkc != 1:
+            return Failure(WorkingCounterError())
+        return Success(wkc)
+
     @staticmethod
     def _get_soem_iomap_size_bytes(eni: ENI) -> int:
         """Calculate an iomap size that will exceed the required iomap size
@@ -312,3 +349,28 @@ class MainDevice:
                 iomap_size_bytes += max(input_size_bytes, output_size_bytes) * 2
         _logger.debug(f"Calcuated soem iomap size bytes: {iomap_size_bytes}")
         return iomap_size_bytes
+
+    def _parse_init_cmds(self):
+        for subdevice in self._get_real_subdevices():
+            assert subdevice.info.auto_increment_address is not None
+            subdev_index = self._auto_increment_to_position(subdevice.info.auto_increment_address)
+            if subdevice.mailbox is not None:
+                if subdevice.mailbox.coe is not None:
+                    if subdevice.mailbox.coe.init_cmds is not None:
+                        self._init_sdo_cmds[subdev_index] = [
+                            cmd for cmd in subdevice.mailbox.coe.init_cmds.sdo_cmds
+                        ]
+
+    def _get_real_subdevices(self) -> list[ENISubDevice]:
+        """Some subdevices are passive (e.g. EL9011)"""
+        return [
+            subdevice
+            for subdevice in self.eni.config.subdevices
+            if subdevice.info.auto_increment_address is not None
+        ]
+
+    def _auto_increment_to_position(self, address: int) -> int:
+        if address == 0:
+            return 1
+        position = 0xFFFF - address + 2
+        return position

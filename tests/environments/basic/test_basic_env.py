@@ -196,23 +196,23 @@ def test_correct_subdevices(basic_environment: pyecm.soem.SOEM):
 # still in PREOP
 def test_sdo_read(basic_environment: SOEM):
     # read device name (EL3314-0000)
-    wkc, bytes_read, res = basic_environment.SDOread(
+    wkc, res = basic_environment.SDOread(
         subdevice=2, index=0x1008, subindex=0x00, complete_access=False, size=32, timeout_us=2000
     )
-    _logger.info(f"{wkc=} {bytes_read=} {res=}")
+    _logger.info(f"{wkc=} {res=}")
     assert wkc == 1
-    assert bytes_read == 11
-    assert bytes(res[:bytes_read]) == b"EL3314-0000"
+    assert len(res) == 11
+    assert res == b"EL3314-0000"
 
     # read vendor id (0x00000002) (little endian)
-    wkc, bytes_read, res = basic_environment.SDOread(
+    wkc, res = basic_environment.SDOread(
         subdevice=2, index=0x1018, subindex=0x01, complete_access=False, size=32, timeout_us=2000
     )
-    _logger.info(f"{wkc=} {bytes_read=} {res=}")
+    _logger.info(f"{wkc=} {res=}")
 
     assert wkc == 1
-    assert bytes_read == 4
-    assert np.array_equal(res[:bytes_read], np.array([2, 0, 0, 0]))
+    assert len(res) == 4
+    assert res == bytes([2, 0, 0, 0])
 
     lowest_state_found = basic_environment.statecheck(
         subdevice=0,
@@ -230,11 +230,11 @@ def test_sdo_write(basic_environment: SOEM):
     # write presentation setting of EL3314
 
     # read signed (0)
-    wkc, bytes_read, res = basic_environment.SDOread(
+    wkc, res = basic_environment.SDOread(
         subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=4000
     )
     assert wkc == 1
-    assert bytes_read == 1
+    assert len(res) == 1
     assert res[0] in [0, 1, 2]  # signed
     _logger.info("good read 1")
 
@@ -245,18 +245,18 @@ def test_sdo_write(basic_environment: SOEM):
         subindex=0x02,
         complete_access=False,
         timeout_us=10000,
-        data=np.array([0b00000010], dtype="uint8"),
+        data=bytes([0b00000010]),
     )
 
     assert wkc == 1
     _logger.info("good write 2")
 
     # read high resolution (2)
-    wkc, bytes_read, res = basic_environment.SDOread(
+    wkc, res = basic_environment.SDOread(
         subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=4000
     )
     assert wkc == 1
-    assert bytes_read == 1
+    assert len(res) == 1
     assert res[0] == 2  # high resolution
     _logger.info("good read 3")
 
@@ -267,17 +267,17 @@ def test_sdo_write(basic_environment: SOEM):
         subindex=0x02,
         complete_access=False,
         timeout_us=10000,
-        data=np.array([0], dtype="uint8"),
+        data=bytes([0]),
     )
     assert wkc == 1
     _logger.info("good write 4")
 
     # read signed (0)
-    wkc, bytes_read, res = basic_environment.SDOread(
+    wkc, res = basic_environment.SDOread(
         subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=2000
     )
     assert wkc == 1
-    assert bytes_read == 1
+    assert len(res) == 1
     assert res[0] == 0  # signed
     _logger.info("good read 5")
 
@@ -288,17 +288,17 @@ def test_sdo_write(basic_environment: SOEM):
         subindex=0x02,
         complete_access=False,
         timeout_us=10000,
-        data=np.array([2], dtype="uint8"),
+        data=bytes([2]),
     )
     assert wkc == 1
     _logger.info("good write 6")
 
     # read high resolution (2)
-    wkc, bytes_read, res = basic_environment.SDOread(
+    wkc, res = basic_environment.SDOread(
         subdevice=2, index=0x8000, subindex=0x02, complete_access=False, size=1, timeout_us=2000
     )
     assert wkc == 1
-    assert bytes_read == 1
+    assert len(res) == 1
     assert res[0] == 2  # high resolution
     _logger.info("good read 7")
 
